@@ -1,15 +1,17 @@
 # YouTube for Meanwhile
 
-Meanwhile fills the waiting room with relevant videos. Research is **three tiers**:
+Meanwhile shows one clip for the stack in the header, plus an **Up next** line.
+
+The prompt hook writes curated short clips immediately (no network, so the agent is never held up). A detached `runtime/enrich.mjs` then researches more clips for Up next:
 
 | Priority | Mode | Needs |
 | --- | --- | --- |
-| 1 | YouTube Data API `search.list` | `YOUTUBE_API_KEY` |
-| 2a | **yt-dlp** `ytsearchN:…` (browser-like search, no key) | `yt-dlp` on PATH |
-| 2b | HTML results scrape (fetch YouTube search page) | network |
-| 3 | Curated embed IDs in code | nothing |
+| — | Curated short clips in `runtime/youtube.mjs` (always first) | nothing |
+| 1 | YouTube Data API `search.list` + `videos.list` (lengths) | `YOUTUBE_API_KEY` |
+| 2a | **yt-dlp** `ytsearchN:…` (no key) | `yt-dlp` on PATH |
+| 2b | YouTube results page scrape (no key, best effort) | network |
 
-You never get an empty player if curated fallbacks exist.
+Clips are ordered to fit the estimate: anything longer than ~80% of the expected wait, or with an unknown length, goes to the back. When a clip ends and the agent is still working, the panel rolls forward to Up next.
 
 ## Get a YouTube Data API key (optional)
 
@@ -64,4 +66,4 @@ console.log(await researchVideos({ stack: ["Stripe"], prompt: "checkout" }));
 '
 ```
 
-Expect `source: "yt-dlp"` (or `browser-sim` / curated) on each video.
+Expect `source: "yt-dlp"` (or `results-page`) on each researched clip.

@@ -23,14 +23,18 @@ export function sessionPath(root = projectDir()) {
   return join(meanwhileDir(root), "session.json");
 }
 
-export function playerPath(root = projectDir()) {
-  return join(meanwhileDir(root), "player.json");
-}
-
 export function eventsPath(root = projectDir()) {
   return join(meanwhileDir(root), "events.jsonl");
 }
 
 export function activityPath(root = projectDir()) {
   return join(meanwhileDir(root), "activity.jsonl");
+}
+
+export function answerPath(root = projectDir()) {
+  return join(meanwhileDir(root), "answer.json");
+}
+
+export function lockPath(root = projectDir()) {
+  return join(meanwhileDir(root), "session.lock");
 }

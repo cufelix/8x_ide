@@ -12,7 +12,7 @@ const { startDemoSession } = await import(
 );
 
 const prompt = process.argv.slice(2).join(" ").trim();
-const result = await startDemoSession(prompt || undefined);
+const result = startDemoSession(prompt || undefined);
 console.log(
   JSON.stringify(
     {
@@ -20,8 +20,8 @@ console.log(
       sessionId: result.session?.id,
       stack: result.session?.stack,
       estimate: result.session?.estimate?.label,
-      videos: result.session?.videos?.length,
-      cards: result.session?.cards?.length,
+      video: result.session?.videos?.[0]?.title,
+      question: result.session?.question?.title ?? null,
       path: join(result.session?.source?.projectDir || process.cwd(), ".meanwhile/session.json"),
     },
     null,

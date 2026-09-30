@@ -15,7 +15,7 @@ const store = await import(pathToFileURL(join(root, "runtime/store.mjs")).href);
 const TOOLS = [
   {
     name: "meanwhile_status",
-    description: "Current Meanwhile session: stack, estimate, video, card, activity.",
+    description: "Current Meanwhile session: stack, estimate, clips, the open question, and the constraint the user set.",
     inputSchema: { type: "object", properties: {} },
   },
   {
@@ -29,8 +29,13 @@ const TOOLS = [
     },
   },
   {
+    name: "meanwhile_constraints",
+    description: "Constraints the user set in the Meanwhile panel for this run. Follow them.",
+    inputSchema: { type: "object", properties: {} },
+  },
+  {
     name: "meanwhile_answer",
-    description: "Submit an answer for the current learning card.",
+    description: "Answer the open Meanwhile question with one of its choice ids.",
     inputSchema: {
       type: "object",
       properties: {
@@ -59,19 +64,18 @@ async function handleTool(name, args = {}) {
   if (name === "meanwhile_status") {
     const session = store.loadSession();
     const activity = store.readActivityTail(12);
-    return toolText({
-      session,
-      activity,
-      card: session ? pipeline.currentCard(session) : null,
-    });
+    return toolText({ session, activity });
   }
   if (name === "meanwhile_demo") {
-    const result = await pipeline.startDemoSession(args.prompt);
+    const result = pipeline.startDemoSession(args.prompt);
     return toolText(result);
   }
+  if (name === "meanwhile_constraints") {
+    const answer = store.loadSession()?.question?.answer;
+    return toolText({ constraints: answer ? [answer.constraint] : [] });
+  }
   if (name === "meanwhile_answer") {
-    pipeline.startLesson();
-    return toolText(pipeline.submitAnswer({ choiceId: args.choiceId }));
+    return toolText(pipeline.answerQuestion({ choiceId: String(args.choiceId || "") }));
   }
   return toolText({ error: "unknown_tool", name });
 }

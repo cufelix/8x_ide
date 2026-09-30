@@ -1,40 +1,43 @@
-# Meanwhile — UI + live session
+# Meanwhile — the panel
 
-Half-screen waiting room for Cursor / VS Code.
+The half-tab you sit with while a Cursor agent runs. It renders `.meanwhile/session.json`, which the hooks write, and nothing else.
 
 ## Install
 
 ```bash
 cd extension
 npx @vscode/vsce package --allow-missing-repository --skip-license
-cursor --install-extension ./meanwhile-0.2.0.vsix --force
+cursor --install-extension ./meanwhile-0.3.0.vsix --force
 ```
 
-Reload Cursor window. Open this repo as the workspace.
+Reload the Cursor window.
 
-## Try it (no agent needed)
+## What it shows
 
-1. **Cmd/Ctrl+Shift+P** → **Meanwhile: Start Demo Session**  
-   (or **Cmd/Ctrl+Alt+Shift+M**)
-2. Panel opens beside the editor with stack chips, ETA, YouTube embed, and a question.
-3. Or from terminal:
+| When | Panel |
+| --- | --- |
+| No run | Empty stage, corner mark |
+| Agent running | `Meanwhile · ~6–10 min · Stripe · Next.js`, one activity line, the clip that fits the wait with an **Up next** line, and at most one question |
+| Question answered | The card collapses to the constraint you set; the agent gets it on its next tool call |
+| Agent stopped | `Review the diff`, one sentence (“Checkout route added, 4 files”), video stops; after 5 s the column closes and Source Control opens |
 
-```bash
-node scripts/demo-session.mjs "Add Stripe checkout to this Next.js site"
-```
-
-Then **Meanwhile: Open** if the panel did not auto-appear.
-
-## With a real agent run
-
-When the Cursor plugin hooks are enabled for this project, submitting a coding prompt writes `.meanwhile/session.json`. The extension watches that folder and opens the panel automatically.
+Colors come from the active theme (`--vscode-*` variables).
 
 ## Keys
 
-| Shortcut | Command |
+| Shortcut | What it does |
 | --- | --- |
-| Ctrl/Cmd+Alt+M | Meanwhile: Open |
-| Ctrl/Cmd+Alt+Shift+M | Meanwhile: Start Demo Session |
+| Ctrl/Cmd+Alt+M | Open and focus the panel. Pressed again with a question open, it moves through the choices; **Enter** answers |
+| 1 / 2 / 3 | Answer the open question (panel focused) |
+| Ctrl/Cmd+Alt+Shift+M | Demo session (Meanwhile repo open) |
 
-Optional: set `YOUTUBE_API_KEY` for live YouTube search (otherwise curated fallbacks).
-Set `OPENROUTER_API_KEY` / `ELEVENLABS_API_KEY` for smarter cards and voice (see `WORKPLACE.md`).
+## Video
+
+Webviews cannot embed YouTube directly (Error 153: no referrer), so the extension serves a player page on `127.0.0.1:<random port>` and frames it. If that server cannot start, the panel shows a thumbnail that opens YouTube.
+
+## Files
+
+- `extension.js` — watches `.meanwhile/`, writes only `.meanwhile/answer.json`
+- `player-server.js` — localhost YouTube player relay
+- `media/view-model.js` — session + clock → what to show (tested in `test/view-model.test.mjs`)
+- `media/panel.html` — the webview

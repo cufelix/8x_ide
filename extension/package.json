@@ -1,8 +1,8 @@
 {
   "name": "meanwhile",
   "displayName": "Meanwhile",
-  "description": "Half-screen waiting room while a coding agent runs — stack reaction, YouTube, micro-lessons.",
-  "version": "0.2.3",
+  "description": "The half-tab you sit with while a Cursor agent runs: the wait, one clip, one question.",
+  "version": "0.4.0",
   "publisher": "meanwhile",
   "engines": {
     "vscode": "^1.85.0"
@@ -37,6 +37,16 @@
         "key": "ctrl+alt+shift+m",
         "mac": "cmd+alt+shift+m"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "Meanwhile",
+      "properties": {
+        "meanwhile.adaptiveLayout": {
+          "type": "boolean",
+          "default": true,
+          "description": "Resize with your attention: Meanwhile widens when you use it, narrows while you work with the agent, and plays video full-window."
+        }
+      }
+    }
   }
 }
