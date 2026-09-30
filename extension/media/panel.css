@@ -1,0 +1,60 @@
+@font-face {
+  font-family: "Manrope";
+  src: url("./fonts/Manrope.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: dark;
+  --font: "Manrope", sans-serif;
+  --bg: #151b1b;
+  --fg: #f1f5ef;
+  --muted: #a7b3ac;
+  --faint: #8ea095;
+  --line: #303c37;
+  --hover: #26322d;
+  --accent: #c4ef9a;
+  --pick-bg: #c4ef9a;
+  --pick-fg: #192c18;
+  --panel-surface: #1d2622;
+  --panel-raised: #253129;
+  --panel-accent-soft: #2d3c28;
+  --panel-error: #ffb4a2;
+}
+:root[data-panel-theme="light"] {
+  color-scheme: light;
+  --bg: #f6f8f4;
+  --fg: #1d2b23;
+  --muted: #596a5f;
+  --faint: #596a5f;
+  --line: #d8e0d6;
+  --hover: #e7eee2;
+  --accent: #376627;
+  --pick-bg: #2f6022;
+  --pick-fg: #fff;
+  --panel-surface: #fff;
+  --panel-raised: #edf3e8;
+  --panel-accent-soft: #e3efd8;
+  --panel-error: #a42e1f;
+}
+html, body { background: var(--bg); color: var(--fg); font-family: var(--font); }
+.mode-bar { padding: 0 16px; gap: 10px; background: var(--bg); }
+.mode-brand { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 800; color: var(--fg); letter-spacing: -.035em; }
+.mode-brand > svg { width: 19px; height: 19px; color: var(--accent); }
+.mode-actions { display: flex; align-items: center; gap: 9px; }
+.mode-switch { gap: 2px; padding: 3px; border: 0; border-radius: 8px; background: var(--panel-raised); }
+.mode-switch button { padding: 5px 12px; font-size: 11px; font-weight: 650; line-height: 19px; }
+.mode-switch button[aria-pressed="true"] { background: var(--panel-surface); box-shadow: 0 1px 3px #00000014; color: var(--fg); }
+.theme-toggle { display: grid; place-items: center; width: 34px; height: 34px; padding: 8px; border: 1px solid var(--line); border-radius: 9px; background: transparent; color: var(--muted); cursor: pointer; }
+.theme-toggle:hover { background: var(--hover); color: var(--fg); }
+.theme-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.theme-toggle svg { width: 17px; height: 17px; }
+.theme-moon, [data-panel-theme="light"] .theme-sun { display: none; }
+[data-panel-theme="light"] .theme-moon { display: block; }
+.vibe-save-status { box-shadow: 0 4px 20px #00000020; }
+@media (max-width: 310px) {
+  .mode-bar { padding: 0 12px; }
+  .mode-brand-name { display: none; }
+}

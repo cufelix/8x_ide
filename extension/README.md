@@ -12,6 +12,10 @@ cursor --new-window --extensionDevelopmentPath="$PWD/extension" "$PWD"
 
 In that Extension Development Host, run **Meanwhile: Open Vibe** from the command palette. No running agent or API key is required. Use the **Work / Vibe** buttons to switch modes. Individual services may require their own account.
 
+The sun/moon button switches the panel between light and dark. Before your first choice, the panel follows Cursor's light/dark mode; after that, your choice persists across panel and editor restarts. It changes both Work and Vibe without changing your Cursor editor settings. Embedded services keep their own appearance and are not reloaded when the panel theme changes.
+
+App rows have a large launch target with a separate favorite button. Favorites stay in their own section, followed by recommendations. Each row says whether it opens in your browser or in the panel. Recent apps provide a shortcut back. The font and official service icons are bundled, so displaying the launcher does not need an external font or image request.
+
 For a browser-only UI preview, run `npm run preview:vibe` at the repository root and open the printed local URL. The preview toolbar simulates the agent finishing, panel widths, and themes. It uses the actual panel assets and real activity sites, with a simulated extension host. Preferences are stored separately in that browser; the preview does not run a coding agent or modify repository files.
 
 Choose interests, pin favorites, and reopen recent activities. Recommendations use your explicit interests and favorites. The first catalog contains:
@@ -51,7 +55,7 @@ Reload the Cursor window.
 | Question answered | The card collapses to the constraint you set; the agent gets it on its next tool call |
 | Agent stopped | `Review the diff`, one sentence (“Checkout route added, 4 files”), video stops; after 5 s the column closes and Source Control opens |
 
-Colors come from the active theme (`--vscode-*` variables).
+The panel uses its selected light/dark palette and bundled Manrope font. Keyboard focus, reduced-motion support, and high-contrast card borders remain available.
 
 ## Keys
 
@@ -71,9 +75,22 @@ Webviews cannot embed YouTube directly (Error 153: no referrer), so the extensio
 - `player-server.js` — localhost YouTube player relay
 - `media/view-model.js` — session + clock → what to show (tested in `test/view-model.test.mjs`)
 - `media/panel.html` — the webview
+- `media/panel.css` / `media/panel-theme.js` — shared font, light/dark palettes, and theme control
 - `media/vibe-model.js` — fixed service catalog, preference validation, and recommendation ordering
 - `media/vibe-ui.js` / `media/vibe.css` — activity shelf, real iframe, and scoped styles
 - `media/vibe-bridge.js` — mode switching, preference saves, and browser-open messages
 - `../scripts/preview-vibe.mjs` — local development preview with the real panel assets
 
 Run `npm test` from the repository root to check the session runtime, Vibe preferences, browser destination validation, and extension-host behavior. Add services to the model's fixed catalog; enable `embedUrl` only for officially supported embeds. The host resolves activity IDs to catalog URLs and derives its iframe CSP allowlist from that catalog.
+
+## Bundled assets
+
+Manrope comes from [Google Fonts](https://github.com/google/fonts/tree/main/ofl/manrope), under the SIL Open Font License included in `media/fonts/OFL.txt`, with its font log alongside it. The service icons below were obtained from each service's own website icon links and are used to identify those services; their branding belongs to the respective owners.
+
+| File in `media/logos` | Official source |
+| --- | --- |
+| `duolingo.png` | [Duolingo website icon](https://d35aaqx5ub95lt.cloudfront.net/images/duolingo-touch-icon2.png) |
+| `brilliant.png` | [Brilliant website icon](https://brilliant.org/apple-touch-icon-180x180-precomposed.png) |
+| `exercism.png` | [Exercism website icon](https://assets.exercism.org/meta/apple-touch-icon.png) |
+| `monkeytype.png` | [Monkeytype website icon](https://monkeytype.com/images/favicon/apple-touch-icon.png) |
+| `lichess.png` | [Lichess website icon](https://lichess1.org/assets/logo/lichess-favicon-64.png) |

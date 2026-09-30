@@ -1,6 +1,37 @@
 /** A personalized shelf for real services, with an optional official embed. */
 (function (global) {
   "use strict";
+  const assetBase = new URL(".", document.currentScript?.src || document.baseURI);
+
+  function icon(name) {
+    const paths = {
+      star: "m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-2.9-5.6 2.9 1.1-6.2L3 9.6l6.2-.9Z",
+      external: "M14 3h7v7m0-7L10 14M10 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5",
+      panel: "M4 4h16v16H4zM14 4v16",
+    };
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("fill", "none");
+    svg.setAttribute("stroke", "currentColor");
+    svg.setAttribute("stroke-width", "1.7");
+    svg.setAttribute("stroke-linecap", "round");
+    svg.setAttribute("stroke-linejoin", "round");
+    svg.setAttribute("aria-hidden", "true");
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("d", paths[name]);
+    svg.append(path);
+    return svg;
+  }
+
+  function logo(activity) {
+    const image = element("img", "vibe-service-logo");
+    image.src = new URL(activity.logo, assetBase).href;
+    image.alt = "";
+    image.width = 43;
+    image.height = 43;
+    image.decoding = "async";
+    return image;
+  }
 
   function element(tag, className, text) {
     const node = document.createElement(tag);
@@ -79,16 +110,17 @@
       const line = element("p", "vibe-agent-line");
       const dot = element("span", "vibe-status-dot" + (agent.running ? " is-running" : ""));
       dot.setAttribute("aria-hidden", "true");
-      line.append(dot, element("span", "", agent.running ? "Your agent is working. This moment is yours." : "A little room for whatever you’re into."));
+      line.append(dot, element("span", "", agent.running ? "Agent working · you have a moment" : "Ready for a little break"));
       status.append(line);
     }
 
     function pinButton(activity, key) {
       const pinned = state.pinnedIds.includes(activity.id);
-      const pin = button(pinned ? "★" : "☆", "vibe-pin" + (pinned ? " is-pinned" : ""), () => commit(model.togglePin(state, activity.id)), key || "pin-" + activity.id);
-      pin.setAttribute("aria-label", `${pinned ? "Unpin" : "Pin"} ${activity.title}`);
+      const pin = button("", "vibe-pin" + (pinned ? " is-pinned" : ""), () => commit(model.togglePin(state, activity.id)), key || "pin-" + activity.id);
+      pin.append(icon("star"));
+      pin.setAttribute("aria-label", `${pinned ? "Remove" : "Add"} ${activity.title} ${pinned ? "from" : "to"} favorites`);
       pin.setAttribute("aria-pressed", String(pinned));
-      pin.title = `${pinned ? "Unpin" : "Pin"} ${activity.title}`;
+      pin.title = pin.getAttribute("aria-label");
       return pin;
     }
 
@@ -97,15 +129,12 @@
       frameId = null;
       embedSlot.replaceChildren();
       const intro = element("header", "vibe-intro");
-      intro.append(element("p", "vibe-eyebrow", "A moment for you"));
-      const title = element("h1", "vibe-title", "A good little ");
-      title.append(element("em", "", "detour."));
-      intro.append(title, element("p", "vibe-description", "Your favorite places to learn, practice, or reset. Pick what you’re into."));
+      intro.append(element("h1", "vibe-title", "Make the wait yours."), element("p", "vibe-description", "A little learning. A quick challenge. Something for you."));
       main.append(intro);
 
       const interests = element("section", "vibe-interests-section");
       interests.setAttribute("aria-labelledby", "vibe-interest-label");
-      const label = element("h2", "vibe-section-label", "Make it yours");
+      const label = element("h2", "vibe-section-label", "What are you into?");
       label.id = "vibe-interest-label";
       interests.append(label);
       const picks = element("div", "vibe-interests");
@@ -123,32 +152,44 @@
       if (recents.length) {
         const recent = element("section", "vibe-recents");
         recent.setAttribute("aria-label", "Recently opened");
-        recent.append(element("span", "vibe-recent-label", "Back to"));
-        recents.forEach((activity) => recent.append(button(activity.title + " ↗", "vibe-recent", () => choose(activity), "recent-" + activity.id)));
+        recent.append(element("h2", "vibe-section-label", "Jump back in"));
+        const list = element("div", "vibe-recent-list");
+        recents.forEach((activity) => {
+          const pick = button("", "vibe-recent", () => choose(activity), "recent-" + activity.id);
+          pick.append(logo(activity), element("span", "", activity.title));
+          list.append(pick);
+        });
+        recent.append(list);
         main.append(recent);
       }
+      const ordered = model.recommendations(state);
+      renderShelf("Your favorites", ordered.filter((activity) => state.pinnedIds.includes(activity.id)));
+      renderShelf(state.interestIds.length ? "Picked for you" : "Explore", ordered.filter((activity) => !state.pinnedIds.includes(activity.id)));
+      main.append(element("p", "vibe-footnote", "Your apps. Your progress.\nFavorites and interests saved on this device."));
+    }
+
+    function renderShelf(title, activities) {
+      if (!activities.length) return;
+      const section = element("section", "vibe-shelf-section");
+      section.setAttribute("aria-label", title);
       const heading = element("div", "vibe-shelf-heading");
-      heading.append(element("h2", "vibe-section-label", state.interestIds.length ? "Picked for your interests" : "Explore something new"), element("span", "vibe-small-note", "★ to keep a favorite"));
-      main.append(heading);
+      heading.append(element("h2", "vibe-section-label", title), element("span", "vibe-small-note", `${activities.length} ${activities.length === 1 ? "app" : "apps"}`));
       const shelf = element("div", "vibe-shelf");
-      model.recommendations(state).forEach((activity) => {
-        const card = element("article", "vibe-service" + (state.pinnedIds.includes(activity.id) ? " is-pinned" : ""));
-        card.dataset.activity = activity.id;
-        const top = element("div", "vibe-service-top");
-        const monogram = element("span", "vibe-service-mark", activity.mark || activity.title.slice(0, 1));
-        monogram.setAttribute("aria-hidden", "true");
-        const identity = element("div", "vibe-service-identity");
-        identity.append(element("h3", "vibe-service-title", activity.title), element("span", "vibe-service-domain", new URL(activity.url).hostname.replace(/^www\./, "")));
-        top.append(monogram, identity, pinButton(activity));
-        card.append(top, element("p", "vibe-service-description", activity.description));
-        const footer = element("div", "vibe-service-footer");
-        const matching = activity.interests.map((id) => model.interests.find((interest) => interest.id === id)).filter(Boolean);
-        footer.append(element("span", "vibe-service-category", matching.map((interest) => interest.label).join(" · ")));
-        footer.append(button(activity.embedUrl ? "Open here →" : "Open ↗", "vibe-open", () => choose(activity), "open-" + activity.id));
-        card.append(footer);
+      activities.forEach((activity) => {
+        const card = element("article", "vibe-service");
+        const launch = button("", "vibe-service-launch", () => choose(activity), "open-" + activity.id);
+        launch.setAttribute("aria-label", `Open ${activity.title} ${activity.embedUrl ? "in this panel" : "in your browser"}`);
+        const copy = element("span", "vibe-service-copy");
+        copy.append(element("strong", "vibe-service-title", activity.title), element("span", "vibe-service-description", activity.description));
+        const destination = element("span", "vibe-destination" + (activity.embedUrl ? " is-embedded" : ""));
+        destination.append(icon(activity.embedUrl ? "panel" : "external"), element("span", "", activity.embedUrl ? "Open in this panel" : "Open in browser"));
+        copy.append(destination);
+        launch.append(logo(activity), copy);
+        card.append(launch, pinButton(activity));
         shelf.append(card);
       });
-      main.append(shelf, element("p", "vibe-footnote", "Real services, your own accounts. Your interests and favorites stay on this device."));
+      section.append(heading, shelf);
+      main.append(section);
     }
 
     function renderActivity(activity) {
@@ -156,11 +197,12 @@
       navigation.append(button("← Activities", "vibe-text-button", () => commit(model.goHome(state), "open-" + activity.id), "activities"), pinButton(activity, "active-pin"));
       main.append(navigation);
       const header = element("header", "vibe-activity-header");
-      header.append(element("p", "vibe-eyebrow", activity.embedUrl ? "A little time to play" : "Your own account. Your own pace."));
+      const headingCopy = element("div");
       const title = element("h1", "vibe-activity-title", activity.title);
       title.tabIndex = -1;
       title.dataset.vibeFocus = "activity-heading";
-      header.append(title, element("p", "vibe-description", activity.description));
+      headingCopy.append(title, element("p", "vibe-description", activity.description));
+      header.append(logo(activity), headingCopy);
       main.append(header);
       const result = openResults.get(activity.id);
       if (activity.embedUrl) {
@@ -190,7 +232,8 @@
         frameId = null;
         embedSlot.replaceChildren();
         const external = element("section", "vibe-external");
-        const arrow = element("span", "vibe-external-mark", "↗");
+        const arrow = element("span", "vibe-external-mark");
+        arrow.append(icon("external"));
         arrow.setAttribute("aria-hidden", "true");
         external.append(arrow, element("h2", "vibe-external-title", "Continue in your browser."), element("p", "vibe-description", "Use the real site and keep your progress with the service. Your agent can keep working here."));
         const open = button(result === "pending" ? "Opening…" : `Open ${activity.title} ↗`, "vibe-primary", () => requestOpen(activity.id), "open-browser");
