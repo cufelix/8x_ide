@@ -5,55 +5,45 @@ const BUCKETS = {
   marathon: { secondsMin: 1200, secondsMax: 2400, label: "~20+ min" },
 };
 
+const HEAVY = ["Stripe", "Auth", "Prisma", "Postgres", "Database", "Supabase"];
+
 /**
- * Fast heuristic ETA from the prompt. Never blocks on network/LLM.
+ * Fast heuristic ETA from the prompt. Never blocks on network or a model.
+ * Unclear prompts land in medium. Scope words lengthen. A single-file tweak shortens.
  * @param {string} prompt
  * @param {string[]} stack
  */
 export function estimateDuration(prompt, stack = []) {
   const p = String(prompt || "").toLowerCase();
   const signals = [];
-  let score = 0;
+  const scopeHits =
+    p.match(/\b(refactor|migrate|from scratch|entire|whole|rewrite|all tests)\b/g) ||
+    [];
+  const broad = scopeHits.length > 0;
+  const narrow = /\b(typo|rename|one line|quick fix|tiny|single file|one file|this file)\b/.test(
+    p
+  );
+  const manyPaths = (p.match(/src\/|\.tsx?|\.jsx?|\.py|\.go/g) || []).length >= 3;
+  const integration =
+    /\b(integrate|integration|checkout|payments?|auth|database|schema)\b/.test(p) ||
+    stack.some((item) => HEAVY.includes(item));
 
-  if (/\b(typo|rename|rename only|one line|quick fix|tiny)\b/.test(p)) {
-    score -= 2;
-    signals.push("narrow-scope");
-  }
-  if (/\b(single file|one file|this file)\b/.test(p)) {
-    score -= 1;
-    signals.push("single-file");
-  }
-  if (/\b(refactor|migrate|from scratch|entire|whole|rewrite|all tests)\b/.test(p)) {
-    score += 3;
-    signals.push("broad-scope");
-  }
-  if (/\b(integrate|integration|checkout|payments?|auth|database|schema)\b/.test(p)) {
-    score += 2;
-    signals.push("integration");
-  }
-  if ((p.match(/src\/|\.tsx?|\.jsx?|\.py|\.go/g) || []).length >= 3) {
-    score += 1;
-    signals.push("many-paths");
-  }
-  if (stack.length >= 3) {
-    score += 1;
-    signals.push("multi-stack");
-  }
-  if (stack.includes("Stripe") || stack.includes("Auth") || stack.includes("Prisma")) {
-    score += 1;
-    signals.push("heavy-stack");
-  }
-  if (signals.length === 0) {
-    signals.push("default");
-  }
+  if (narrow) signals.push("narrow-scope");
+  if (broad) signals.push("broad-scope");
+  if (manyPaths) signals.push("many-paths");
+  if (integration) signals.push("integration");
+  if (stack.length >= 3) signals.push("multi-stack");
+  if (!signals.length) signals.push("default");
 
   let bucket = "medium";
-  if (score <= -1) {
-    bucket = "short";
-  } else if (score >= 5) {
+  if (broad && (scopeHits.length >= 3 || manyPaths || stack.length >= 4)) {
     bucket = "marathon";
-  } else if (score >= 2) {
+  } else if (broad && narrow && !manyPaths) {
+    bucket = "medium";
+  } else if (broad || manyPaths) {
     bucket = "long";
+  } else if (narrow) {
+    bucket = "short";
   }
 
   const meta = BUCKETS[bucket];

@@ -91,15 +91,18 @@ function pushState() {
   panel.webview.postMessage({ type: "state", payload: buildState() });
 }
 
+/** Session ids we already revealed, so a closed panel stays closed. */
+let revealedFor = null;
+
 /**
  * @param {vscode.ExtensionContext} context
- * @param {{ reveal?: boolean }} [opts]
+ * @param {{ preserveFocus?: boolean }} [opts]
  */
 function openPanel(context, opts = {}) {
-  const reveal = opts.reveal !== false;
+  const preserveFocus = opts.preserveFocus !== false;
   if (panel) {
-    if (reveal) {
-      panel.reveal(vscode.ViewColumn.Beside);
+    if (!preserveFocus) {
+      panel.reveal(vscode.ViewColumn.Beside, false);
     }
     pushState();
     return panel;
@@ -116,7 +119,7 @@ function openPanel(context, opts = {}) {
   panel = vscode.window.createWebviewPanel(
     "meanwhile",
     "Meanwhile",
-    vscode.ViewColumn.Beside,
+    { viewColumn: vscode.ViewColumn.Beside, preserveFocus },
     {
       enableScripts: true,
       retainContextWhenHidden: true,
@@ -147,6 +150,10 @@ function openPanel(context, opts = {}) {
       }
       if (msg.type === "demo") {
         await runDemo(msg.prompt);
+        return;
+      }
+      if (msg.type === "reviewDiff") {
+        await vscode.commands.executeCommand("workbench.view.scm");
         return;
       }
       if (msg.type === "openUrl" && msg.url) {
@@ -246,11 +253,26 @@ function runDemo(prompt) {
         resolve(false);
         return;
       }
-      openPanel(extContext, { reveal: true });
+      openPanel(extContext, { preserveFocus: false });
       pushState();
       resolve(true);
     });
   });
+}
+
+function maybeReveal(context, session) {
+  if (panel) {
+    pushState();
+    return;
+  }
+  if (!session || session.codingAgent?.status !== "running") {
+    return;
+  }
+  if (revealedFor === session.id) {
+    return;
+  }
+  revealedFor = session.id;
+  openPanel(context, { preserveFocus: true });
 }
 
 function watchMeanwhile(context) {
@@ -262,14 +284,7 @@ function watchMeanwhile(context) {
   const watcher = vscode.workspace.createFileSystemWatcher(pattern);
 
   const onChange = () => {
-    const session = readJson(sessionPath(), null);
-    if (session && session.codingAgent?.status === "running") {
-      openPanel(context, { reveal: true });
-    } else if (panel) {
-      pushState();
-    } else if (session) {
-      openPanel(context, { reveal: true });
-    }
+    maybeReveal(context, readJson(sessionPath(), null));
   };
 
   watcher.onDidCreate(onChange, null, context.subscriptions);
@@ -280,12 +295,9 @@ function watchMeanwhile(context) {
   const timer = setInterval(() => {
     if (panel) {
       pushState();
-    } else {
-      const session = readJson(sessionPath(), null);
-      if (session && session.codingAgent?.status === "running") {
-        openPanel(context, { reveal: true });
-      }
+      return;
     }
+    maybeReveal(context, readJson(sessionPath(), null));
   }, 1500);
   context.subscriptions.push({ dispose: () => clearInterval(timer) });
 }
@@ -298,25 +310,28 @@ function activate(context) {
 
   context.subscriptions.push(
     vscode.commands.registerCommand("meanwhile.open", () => {
-      openPanel(context, { reveal: true });
+      openPanel(context, { preserveFocus: false });
     })
   );
   context.subscriptions.push(
     vscode.commands.registerCommand("meanwhile.demo", async () => {
-      await runDemo(
-        "Add Stripe checkout to this Next.js site with Postgres for orders."
-      );
+      await runDemo("Add Stripe checkout to this Next.js site.");
     })
   );
 
   watchMeanwhile(context);
 
-  // If a session already exists, open beside once.
+  // If a session already exists, open beside once without taking chat focus.
   setTimeout(() => {
     const session = readJson(sessionPath(), null);
-    if (session) {
-      openPanel(context, { reveal: true });
+    if (!session) {
+      return;
     }
+    if (session.codingAgent?.status === "running") {
+      maybeReveal(context, session);
+      return;
+    }
+    openPanel(context, { preserveFocus: true });
   }, 600);
 }
 
@@ -334,9 +349,14 @@ function getHtml(webview, extensionPath) {
     `font-src ${webview.cspSource} data:`,
     `img-src ${webview.cspSource} https: data:`,
     `media-src ${webview.cspSource} blob:`,
-    `frame-src https://www.youtube.com https://youtube.com`,
+    `frame-src https://www.youtube.com https://youtube.com https://www.youtube-nocookie.com`,
   ].join("; ");
+  const activityJs = path.join(extensionPath, "media", "activity-line.js");
+  const activityFn = fs.existsSync(activityJs)
+    ? fs.readFileSync(activityJs, "utf8")
+    : "function toActivitySentence(raw){return String(raw||'').slice(0,80);}";
   html = html.replace(/\{\{CSP\}\}/g, csp);
+  html = html.replace("{{ACTIVITY_FN}}", activityFn);
   return html;
 }
 

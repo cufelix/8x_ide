@@ -1,8 +1,8 @@
 /**
- * YouTube research for Meanwhile — three tiers:
- * 1) YouTube Data API when YOUTUBE_API_KEY is set
- * 2) Browser-like search via yt-dlp (no API key)
- * 3) Curated fallback embeds (never empty)
+ * YouTube research for Meanwhile:
+ * 1) YouTube Data API when YOUTUBE_API_KEY is set (can replace the curated pick)
+ * 2) Curated offline clips when the key is missing, so the demo is never empty
+ * Optional MEANWHILE_YT_SEARCH=1 tries yt-dlp / a results page before the offline set.
  */
 import { spawnSync } from "node:child_process";
 
@@ -103,17 +103,30 @@ function curatedForStack(stack) {
     for (const item of FALLBACKS[key] || []) {
       if (seen.has(item.videoId)) continue;
       seen.add(item.videoId);
-      videos.push(withUrl({ ...item, source: "curated" }));
+      videos.push(withUrl({ ...item, source: "curated", offline: true }));
     }
   }
   if (!videos.length) {
     return FALLBACKS.default.map((item) =>
-      withUrl({ ...item, source: "curated" })
+      withUrl({ ...item, source: "curated", offline: true })
     );
   }
-  return videos.map((item) =>
-    item.source ? item : withUrl({ ...item, source: "curated" })
-  );
+  return videos;
+}
+
+/** Prefer clips that finish inside the wait. Longer ones stay available as Up next. */
+function orderForWait(videos, estimate) {
+  const max = estimate?.secondsMax;
+  if (!max) return videos;
+  const fits = [];
+  const over = [];
+  for (const video of videos) {
+    const dur = video.durationSec || 360;
+    if (dur <= max) fits.push(video);
+    else over.push(video);
+  }
+  if (!fits.length) return videos;
+  return fits.concat(over);
 }
 
 function buildQueries(stack, prompt = "") {
@@ -261,10 +274,15 @@ async function searchViaBrowserPage(query, limit = 2) {
   }
 }
 
+function allowLiveSearch() {
+  const flag = String(process.env.MEANWHILE_YT_SEARCH || "").toLowerCase();
+  return flag === "1" || flag === "true";
+}
+
 /**
- * @param {{ stack: string[], prompt?: string }} input
+ * @param {{ stack: string[], prompt?: string, estimate?: object }} input
  */
-export async function researchVideos({ stack, prompt = "" }) {
+export async function researchVideos({ stack, prompt = "", estimate = null }) {
   const apiKey = (process.env.YOUTUBE_API_KEY || "").trim();
   const queries = buildQueries(stack, prompt);
   const seen = new Set();
@@ -278,7 +296,6 @@ export async function researchVideos({ stack, prompt = "" }) {
     }
   };
 
-  // Tier 1 — official API
   if (apiKey) {
     try {
       const batches = await Promise.all(
@@ -286,36 +303,34 @@ export async function researchVideos({ stack, prompt = "" }) {
       );
       pushAll(batches.flat());
       if (collected.length) {
-        return collected.slice(0, 4);
+        return orderForWait(collected, estimate).slice(0, 4);
       }
     } catch {
-      // fall through
+      // Missing or rejected key: play the offline set.
     }
   }
 
-  // Tier 2a — yt-dlp search (preferred no-key / browser-like)
-  for (const q of queries) {
-    pushAll(searchViaYtDlp(q, 2));
-    if (collected.length >= 4) break;
-  }
-  if (collected.length) {
-    return collected.slice(0, 4);
-  }
-
-  // Tier 2b — HTML results scrape (simulate browser fetch)
-  for (const q of queries) {
-    pushAll(await searchViaBrowserPage(q, 2));
-    if (collected.length >= 4) break;
-  }
-  if (collected.length) {
-    return collected.slice(0, 4);
+  if (allowLiveSearch()) {
+    for (const q of queries) {
+      pushAll(searchViaYtDlp(q, 2));
+      if (collected.length >= 4) break;
+    }
+    if (!collected.length) {
+      for (const q of queries) {
+        pushAll(await searchViaBrowserPage(q, 2));
+        if (collected.length >= 4) break;
+      }
+    }
+    if (collected.length) {
+      return orderForWait(collected, estimate).slice(0, 4);
+    }
   }
 
-  // Tier 3 — curated never-empty
-  return curatedForStack(stack).slice(0, 4);
+  return orderForWait(curatedForStack(stack), estimate).slice(0, 4);
 }
 
 export function youtubeResearchMode() {
   if ((process.env.YOUTUBE_API_KEY || "").trim()) return "youtube-api";
-  return "no-key (yt-dlp → browser-sim → curated)";
+  if (allowLiveSearch()) return "no-key search, then curated";
+  return "offline";
 }

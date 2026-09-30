@@ -7,15 +7,15 @@
     <title>Meanwhile</title>
     <style>
       :root {
-        --bg: #000;
-        --fg: #e8e8e8;
-        --muted: rgba(232, 232, 232, 0.48);
-        --faint: rgba(232, 232, 232, 0.28);
-        --line: rgba(232, 232, 232, 0.08);
-        --font: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui,
-          sans-serif;
-        --pad: clamp(16px, 4vw, 28px);
-        --focus-w: min(100%, 380px);
+        color-scheme: light dark;
+        --bg: var(--vscode-editor-background);
+        --fg: var(--vscode-foreground);
+        --muted: var(--vscode-descriptionForeground);
+        --line: var(--vscode-widget-border);
+        --accent: var(--vscode-button-background);
+        --accent-fg: var(--vscode-button-foreground);
+        --focus: var(--vscode-focusBorder);
+        --font: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif);
       }
 
       * {
@@ -30,185 +30,197 @@
         color: var(--fg);
         font-family: var(--font);
         font-size: 13px;
-        line-height: 1.5;
-        -webkit-font-smoothing: antialiased;
+        line-height: 1.45;
+      }
+
+      body {
         overflow: hidden;
       }
 
-      .stage {
-        position: relative;
+      .column {
         height: 100%;
-        width: 100%;
-        background:
-          radial-gradient(
-            ellipse 70% 55% at 50% 40%,
-            rgba(255, 255, 255, 0.05) 0%,
-            transparent 65%
-          ),
-          #000;
-      }
-
-      /* Top: one quiet line */
-      .meta {
-        position: absolute;
-        inset: 0 0 auto 0;
-        padding: 14px var(--pad) 0;
-        display: none;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
-        z-index: 3;
-        color: var(--muted);
-        font-size: 11px;
-        letter-spacing: 0.02em;
-      }
-
-      .meta.is-on {
+        width: min(100%, 420px);
+        margin: 0 auto;
+        padding: 14px 16px 12px;
         display: flex;
-      }
-
-      .meta .left {
-        min-width: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
-
-      .meta .eta {
-        flex: 0 0 auto;
-        opacity: 0.9;
-      }
-
-      .hair {
-        position: absolute;
-        left: var(--pad);
-        right: var(--pad);
-        top: 36px;
-        height: 1px;
-        background: var(--line);
-        display: none;
+        flex-direction: column;
+        gap: 12px;
         overflow: hidden;
       }
 
-      .hair.is-on {
-        display: block;
+      .headline {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        margin: 0;
       }
 
-      .hair > i {
-        display: block;
-        height: 100%;
-        width: 0;
-        background: rgba(232, 232, 232, 0.35);
-        transition: width 0.8s linear;
+      .brand {
+        margin: 0;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
       }
 
-      /* Center focus — only one primary surface */
-      .focus {
-        position: absolute;
-        inset: 48px var(--pad) 56px;
-        display: grid;
-        place-items: center;
+      .range {
+        color: var(--muted);
       }
 
-      .surface {
-        display: none;
-        width: var(--focus-w);
-        animation: in 380ms ease-out both;
-      }
-
-      .surface.is-on {
-        display: block;
-      }
-
-      @keyframes in {
-        from {
-          opacity: 0;
-          transform: translateY(8px);
-        }
-        to {
-          opacity: 1;
-          transform: none;
-        }
-      }
-
-      /* Video — thumbnail card (webview embeds hit YouTube Error 153) */
-      .video {
-        width: 100%;
-        aspect-ratio: 16 / 9;
-        border-radius: 4px;
-        overflow: hidden;
-        background: rgba(255, 255, 255, 0.02);
-        position: relative;
+      .primary {
+        appearance: none;
+        border: 1px solid transparent;
+        background: var(--accent);
+        color: var(--accent-fg);
+        font: inherit;
+        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: 2px;
         cursor: pointer;
-        border: 0;
-        padding: 0;
-        display: block;
       }
 
-      .video img {
+      .primary:focus-visible,
+      .choice:focus-visible,
+      .upnext:focus-visible,
+      .ghost:focus-visible {
+        outline: 1px solid var(--focus);
+        outline-offset: 2px;
+      }
+
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        min-height: 0;
+      }
+
+      .chip {
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 1px 8px;
+        font-size: 11px;
+        line-height: 1.6;
+      }
+
+      .track {
+        height: 2px;
+        background: var(--line);
+      }
+
+      .track > i {
+        display: block;
+        height: 2px;
+        width: 0;
+        background: var(--accent);
+      }
+
+      .estimating {
+        margin: 0;
+        color: var(--fg);
+      }
+
+      .announce {
+        margin: 0;
+        min-height: 0;
+      }
+
+      .announce:empty {
+        display: none;
+      }
+
+      .player {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        flex: 0 0 auto;
+        min-height: 0;
+      }
+
+      .player-frame {
+        width: min(100%, 284px);
+        aspect-ratio: 16 / 9;
+        max-height: 160px;
+        border: 1px solid var(--line);
+        background: var(--bg);
+        overflow: hidden;
+      }
+
+      .column.is-done .player-frame {
+        width: min(100%, 200px);
+        max-height: 112px;
+      }
+
+      .player-frame iframe {
         width: 100%;
         height: 100%;
-        object-fit: cover;
+        border: 0;
         display: block;
-        opacity: 0.92;
       }
 
-      .video .play {
-        position: absolute;
-        inset: 0;
-        display: grid;
-        place-items: center;
-        background: radial-gradient(
-          circle at center,
-          rgba(0, 0, 0, 0.35),
-          rgba(0, 0, 0, 0.55)
-        );
-      }
-
-      .video .play span {
-        width: 52px;
-        height: 52px;
-        border-radius: 999px;
-        border: 1px solid rgba(232, 232, 232, 0.35);
-        background: rgba(0, 0, 0, 0.45);
-        display: grid;
-        place-items: center;
-        color: #fff;
-        font-size: 18px;
-        padding-left: 3px;
-      }
-
-      .video-caption {
-        margin-top: 10px;
+      .video-title,
+      .offline,
+      .empty,
+      .upnext-label {
+        margin: 0;
         color: var(--muted);
         font-size: 12px;
-        text-align: center;
       }
 
-      /* Ask — typography first, no card chrome */
-      .ask .kicker {
-        color: var(--faint);
-        font-size: 10px;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        margin-bottom: 10px;
+      .upnext-list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
       }
 
-      .ask h2 {
-        margin: 0 0 8px;
-        font-size: clamp(15px, 2.4vw, 18px);
-        font-weight: 500;
-        letter-spacing: -0.02em;
-        line-height: 1.25;
+      .upnext {
+        appearance: none;
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        text-align: left;
+        background: transparent;
+        color: var(--fg);
+        border: 0;
+        border-bottom: 1px solid var(--line);
+        font: inherit;
+        font-size: 12px;
+        padding: 4px 0;
+        cursor: pointer;
       }
 
-      .ask p {
-        margin: 0 0 18px;
+      .upnext span:last-child {
         color: var(--muted);
-        font-size: 13px;
-        white-space: pre-wrap;
-        max-height: 28vh;
+        flex: 0 0 auto;
+      }
+
+      .card {
+        flex: 1 1 auto;
+        min-height: 72px;
         overflow: auto;
+      }
+
+      .kicker {
+        margin: 0 0 4px;
+        color: var(--muted);
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .card h2 {
+        margin: 0 0 6px;
+        font-size: 15px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+      }
+
+      .card p {
+        margin: 0 0 8px;
+        white-space: pre-wrap;
       }
 
       .choices {
@@ -221,153 +233,127 @@
         appearance: none;
         text-align: left;
         width: 100%;
-        padding: 9px 0;
-        border: 0;
-        border-bottom: 1px solid var(--line);
+        padding: 6px 8px;
+        border: 1px solid var(--line);
         background: transparent;
         color: var(--fg);
         font: inherit;
-        font-size: 13px;
         cursor: pointer;
       }
 
-      .choice:last-child {
-        border-bottom: 0;
-      }
-
       .choice:hover {
-        color: #fff;
-      }
-
-      .ask-actions {
-        display: flex;
-        justify-content: flex-end;
-        margin-top: 16px;
+        border-color: var(--focus);
       }
 
       .ghost {
         appearance: none;
+        margin-top: 6px;
         border: 0;
         background: transparent;
         color: var(--muted);
         font: inherit;
         font-size: 12px;
+        padding: 0;
         cursor: pointer;
-        padding: 4px 0;
       }
 
-      .ghost:hover {
-        color: var(--fg);
+      .activity {
+        flex: 0 0 auto;
+        max-height: calc(1.45em * 3);
+        overflow: auto;
       }
 
-      .done {
-        text-align: center;
+      .activity p {
+        margin: 0;
+      }
+
+      .activity .older {
         color: var(--muted);
       }
 
-      .done strong {
-        display: block;
-        color: var(--fg);
-        font-weight: 500;
-        margin-bottom: 6px;
-      }
-
-      /* Bottom whisper */
-      .whisper {
-        position: absolute;
-        left: var(--pad);
-        right: var(--pad);
-        bottom: 14px;
-        display: none;
-        color: var(--faint);
-        font-size: 11px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        text-align: center;
-      }
-
-      .whisper.is-on {
-        display: block;
-      }
-
-      .mark {
-        position: absolute;
-        left: var(--pad);
-        bottom: 14px;
-        font-size: 11px;
-        color: var(--faint);
-        opacity: 0.55;
-        pointer-events: none;
-      }
-
-      .stage.has-session .mark {
-        display: none;
-      }
-
-      /* Narrow half-tab: tighter type, no video caption */
-      @container (max-width: 320px) {
-        .ask h2 {
-          font-size: 15px;
-        }
-        .video-caption {
-          display: none;
-        }
-      }
-
-      .stage {
-        container-type: inline-size;
+      .column.is-done .card,
+      .column.is-done .player {
+        opacity: 0.72;
       }
     </style>
   </head>
   <body>
-    <div class="stage" id="stage">
-      <div class="meta" id="meta">
-        <div class="left" id="stack"></div>
-        <div class="eta" id="eta"></div>
-      </div>
-      <div class="hair" id="hair"><i id="bar"></i></div>
-
-      <div class="focus">
-        <div class="surface" id="videoWrap">
-          <div id="video"></div>
-          <div class="video-caption" id="videoCap"></div>
+    <div class="column" id="column">
+      <header>
+        <div class="headline">
+          <button type="button" class="primary" id="review" hidden>Review the diff</button>
+          <h1 class="brand">Meanwhile</h1>
+          <span class="range" id="range"></span>
         </div>
-        <div class="surface ask" id="ask"></div>
-        <div class="surface done" id="done"></div>
-      </div>
+        <div class="chips" id="chips"></div>
+        <div
+          class="track"
+          id="track"
+          hidden
+          role="progressbar"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          aria-label="Elapsed time against the estimate"
+        >
+          <i id="bar"></i>
+        </div>
+      </header>
 
-      <div class="whisper" id="whisper"></div>
-      <div class="mark">Meanwhile</div>
+      <p class="estimating" id="estimating">Estimating the wait…</p>
+      <p class="announce" id="announce" aria-live="polite"></p>
+
+      <section class="player" id="player" hidden>
+        <div class="player-frame" id="frame"></div>
+        <p class="video-title" id="videoTitle"></p>
+        <p class="offline" id="offline" hidden>Using the offline set.</p>
+        <p class="upnext-label" id="upnextLabel" hidden>Up next</p>
+        <ul class="upnext-list" id="upnext"></ul>
+      </section>
+
+      <section class="card" id="card" hidden></section>
+
+      <section class="activity" id="activity" aria-live="polite" hidden></section>
     </div>
 
     <script>
+      {{ACTIVITY_FN}}
+    </script>
+    <script>
       const vscode = acquireVsCodeApi();
-      const stage = document.getElementById("stage");
-      const meta = document.getElementById("meta");
-      const stackEl = document.getElementById("stack");
-      const etaEl = document.getElementById("eta");
-      const hair = document.getElementById("hair");
+      const column = document.getElementById("column");
+      const review = document.getElementById("review");
+      const rangeEl = document.getElementById("range");
+      const chipsEl = document.getElementById("chips");
+      const track = document.getElementById("track");
       const bar = document.getElementById("bar");
-      const videoWrap = document.getElementById("videoWrap");
-      const videoEl = document.getElementById("video");
-      const videoCap = document.getElementById("videoCap");
-      const askEl = document.getElementById("ask");
-      const doneEl = document.getElementById("done");
-      const whisper = document.getElementById("whisper");
-      const voice = document.createElement("audio");
-      voice.preload = "auto";
-      document.body.appendChild(voice);
-      let lastVoiceUri = null;
+      const estimating = document.getElementById("estimating");
+      const announce = document.getElementById("announce");
+      const player = document.getElementById("player");
+      const frame = document.getElementById("frame");
+      const videoTitle = document.getElementById("videoTitle");
+      const offline = document.getElementById("offline");
+      const upnextLabel = document.getElementById("upnextLabel");
+      const upnext = document.getElementById("upnext");
+      const cardEl = document.getElementById("card");
+      const activityEl = document.getElementById("activity");
 
-      let lastVideoId = null;
-      let preferAsk = false;
-      /** @type {'ask' | 'video' | 'done' | 'empty'} */
-      let mode = "empty";
+      const BUCKETS = [
+        { id: "short", label: "~2–4 min", max: 240 },
+        { id: "medium", label: "~5–10 min", max: 600 },
+        { id: "long", label: "~10–20 min", max: 1200 },
+        { id: "marathon", label: "~20+ min", max: 2400 },
+      ];
 
-      function on(el, yes) {
-        el.classList.toggle("is-on", !!yes);
-      }
+      let lastState = null;
+      let sessionId = null;
+      let videoIndex = 0;
+      let manualPick = false;
+      let announcedFor = null;
+      let pausedFor = null;
+
+      review.addEventListener("click", () => {
+        vscode.postMessage({ type: "reviewDiff" });
+      });
 
       function escapeHtml(s) {
         return String(s)
@@ -377,161 +363,309 @@
           .replace(/"/g, "&quot;");
       }
 
-      function progressPct(session, now) {
-        const started = session?.codingAgent?.startedAt;
-        const max = session?.estimate?.secondsMax;
-        if (!started || !max) return 6;
-        const elapsed = (now - Date.parse(started)) / 1000;
-        return Math.max(3, Math.min(97, (elapsed / max) * 100));
+      function formatDuration(sec) {
+        const n = Number(sec);
+        if (!Number.isFinite(n) || n <= 0) return "";
+        const total = Math.round(n);
+        const m = Math.floor(total / 60);
+        const s = total % 60;
+        return `${m}:${String(s).padStart(2, "0")}`;
       }
 
-      function setMode(next) {
-        mode = next;
-        on(videoWrap, next === "video");
-        on(askEl, next === "ask");
-        on(doneEl, next === "done");
-        if (next !== "video") {
-          lastVideoId = null;
-          videoEl.innerHTML = "";
+      function liveBucket(estimate, startedAt, endMs) {
+        let index = Math.max(
+          0,
+          BUCKETS.findIndex((bucket) => bucket.id === (estimate?.bucket || "medium"))
+        );
+        if (!startedAt) {
+          return { ...BUCKETS[index], slipped: false, elapsed: 0 };
+        }
+        const elapsed = Math.max(0, (endMs - Date.parse(startedAt)) / 1000);
+        let slipped = false;
+        while (index < BUCKETS.length - 1 && elapsed > BUCKETS[index].max) {
+          index += 1;
+          slipped = true;
+        }
+        return { ...BUCKETS[index], slipped, elapsed };
+      }
+
+      function visibleCard(session, card) {
+        if (card) return card;
+        const cards = session?.cards || [];
+        if (!cards.length) return null;
+        const cursor = Number.isFinite(session.cursor) ? session.cursor : 0;
+        return cards[Math.min(cursor, cards.length - 1)] || null;
+      }
+
+      function syncChips(names) {
+        const have = new Set(
+          [...chipsEl.querySelectorAll("[data-chip]")].map((node) => node.dataset.chip)
+        );
+        for (const name of names) {
+          if (have.has(name)) continue;
+          const chip = document.createElement("span");
+          chip.className = "chip";
+          chip.dataset.chip = name;
+          chip.textContent = name;
+          chipsEl.appendChild(chip);
         }
       }
 
-      function renderVideo(primary) {
-        if (!primary?.videoId) return;
-        if (primary.videoId !== lastVideoId) {
-          lastVideoId = primary.videoId;
-          const thumb = `https://i.ytimg.com/vi/${encodeURIComponent(
-            primary.videoId
-          )}/hqdefault.jpg`;
-          videoEl.innerHTML = `
-            <button class="video" type="button" data-url="${escapeHtml(
-              primary.url ||
-                `https://www.youtube.com/watch?v=${primary.videoId}`
-            )}" title="Open on YouTube">
-              <img src="${thumb}" alt="" />
-              <div class="play"><span>▶</span></div>
-            </button>
-          `;
-          videoEl.querySelector("button.video")?.addEventListener("click", () => {
-            const url = videoEl.querySelector("button.video")?.dataset.url;
-            if (url) vscode.postMessage({ type: "openUrl", url });
-          });
+      function activityLines(items) {
+        const lines = [];
+        for (let i = items.length - 1; i >= 0 && lines.length < 3; i -= 1) {
+          const item = items[i];
+          if (item.kind !== "thought" && item.kind !== "file_edit") continue;
+          const line = String(
+            item.line ||
+              (typeof toActivitySentence === "function"
+                ? toActivitySentence(item.excerpt || "")
+                : item.excerpt || "")
+          ).trim();
+          if (!line) continue;
+          lines.push(line);
         }
-        videoCap.innerHTML = `${escapeHtml(
-          primary.title || ""
-        )} <button class="ghost" type="button" data-act="to-ask" style="margin-left:8px">Continue</button>`;
-        videoCap.querySelector("[data-act=to-ask]")?.addEventListener(
-          "click",
-          () => {
-            preferAsk = true;
-            vscode.postMessage({ type: "ready" });
-          }
+        return lines;
+      }
+
+      function syncActivity(lines) {
+        const sig = lines.join("\n");
+        if (activityEl.dataset.sig === sig) return;
+        activityEl.dataset.sig = sig;
+        activityEl.replaceChildren();
+        if (!lines.length) {
+          const p = document.createElement("p");
+          p.className = "older";
+          p.textContent = "Waiting for the agent to move.";
+          activityEl.appendChild(p);
+          return;
+        }
+        lines.forEach((line, index) => {
+          const p = document.createElement("p");
+          p.className = index === 0 ? "latest" : "older";
+          p.textContent = line;
+          activityEl.appendChild(p);
+        });
+      }
+
+      function embedSrc(videoId) {
+        return `https://www.youtube-nocookie.com/embed/${encodeURIComponent(
+          videoId
+        )}?rel=0&modestbranding=1&enablejsapi=1`;
+      }
+
+      function ensureVideo(video) {
+        if (!video?.videoId) {
+          frame.replaceChildren();
+          videoTitle.textContent = "";
+          return;
+        }
+        let iframe = frame.querySelector("iframe");
+        if (!iframe) {
+          iframe = document.createElement("iframe");
+          iframe.setAttribute(
+            "allow",
+            "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          );
+          iframe.allowFullscreen = true;
+          iframe.title = video.title || "Meanwhile video";
+          frame.appendChild(iframe);
+        }
+        if (iframe.dataset.id !== video.videoId) {
+          iframe.dataset.id = video.videoId;
+          iframe.title = video.title || "Meanwhile video";
+          iframe.src = embedSrc(video.videoId);
+        }
+        const length = formatDuration(video.durationSec);
+        videoTitle.textContent = length ? `${video.title} · ${length}` : video.title || "";
+      }
+
+      function pauseVideo() {
+        const iframe = frame.querySelector("iframe");
+        iframe?.contentWindow?.postMessage(
+          JSON.stringify({ event: "command", func: "pauseVideo", args: "" }),
+          "*"
         );
       }
 
-      function renderAsk(card) {
+      function autoIndex(videos, session, now) {
+        if (manualPick) return videoIndex;
+        if (!videos.length) return 0;
+        if (session.codingAgent?.status === "stopped") return videoIndex;
+        const started = Date.parse(session.codingAgent?.startedAt || "");
+        if (!started) return videoIndex;
+        const elapsed = Math.max(0, (now - started) / 1000);
+        let acc = 0;
+        for (let i = 0; i < videos.length; i += 1) {
+          acc += Number(videos[i].durationSec) || 180;
+          if (elapsed < acc) return i;
+        }
+        return videos.length - 1;
+      }
+
+      function syncUpNext(videos, index) {
+        const next = videos.slice(index + 1, index + 4);
+        const sig = next.map((video) => video.videoId).join(",");
+        upnextLabel.hidden = next.length === 0;
+        if (upnext.dataset.sig === sig) return;
+        upnext.dataset.sig = sig;
+        upnext.replaceChildren();
+        next.forEach((video, offset) => {
+          const item = document.createElement("li");
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "upnext";
+          const title = document.createElement("span");
+          title.textContent = video.title || "Up next";
+          const dur = document.createElement("span");
+          dur.textContent = formatDuration(video.durationSec);
+          button.append(title, dur);
+          button.addEventListener("click", () => {
+            manualPick = true;
+            videoIndex = index + 1 + offset;
+            if (lastState) render(lastState);
+          });
+          item.appendChild(button);
+          upnext.appendChild(item);
+        });
+      }
+
+      function renderCard(card) {
+        if (cardEl.dataset.id === card.id && cardEl.dataset.kind === card.kind) return;
+        cardEl.dataset.id = card.id;
+        cardEl.dataset.kind = card.kind || "";
         const choices = (card.choices || [])
           .map(
-            (c) =>
+            (choice) =>
               `<button class="choice" type="button" data-id="${escapeHtml(
-                c.id
-              )}">${escapeHtml(c.label)}</button>`
+                choice.id
+              )}">${escapeHtml(choice.label)}</button>`
           )
           .join("");
-        askEl.innerHTML = `
-          <div class="kicker">Meanwhile</div>
+        cardEl.innerHTML = `
+          <p class="kicker">Meanwhile</p>
           <h2>${escapeHtml(card.title || "")}</h2>
           <p>${escapeHtml(card.body || "")}</p>
           ${choices ? `<div class="choices">${choices}</div>` : ""}
-          <div class="ask-actions">
-            <button class="ghost" type="button" data-act="skip">Skip</button>
-          </div>
+          <button class="ghost" type="button" data-act="skip">Skip</button>
         `;
-        askEl.querySelectorAll(".choice").forEach((btn) => {
-          btn.addEventListener("click", () => {
-            preferAsk = false;
-            vscode.postMessage({ type: "answer", choiceId: btn.dataset.id });
+        cardEl.querySelectorAll(".choice").forEach((button) => {
+          button.addEventListener("click", () => {
+            cardEl.dataset.id = "";
+            vscode.postMessage({ type: "answer", choiceId: button.dataset.id });
           });
         });
-        askEl.querySelector("[data-act=skip]")?.addEventListener("click", () => {
-          preferAsk = false;
+        cardEl.querySelector("[data-act=skip]")?.addEventListener("click", () => {
+          cardEl.dataset.id = "";
           vscode.postMessage({ type: "next" });
         });
       }
 
-      function pickMode(session, card) {
-        const stopped = session.codingAgent?.status === "stopped";
-        const finished =
-          session.status === "completed" ||
-          (session.cards && session.cursor >= session.cards.length);
-
-        if (finished || (stopped && !card)) return "done";
-        if (!card && session.videos?.[0]) return "video";
-        if (!card) return "empty";
-
-        const hasChoices = !!(card.choices && card.choices.length);
-        if (hasChoices || preferAsk) return "ask";
-        if (session.videos?.[0] && !preferAsk) return "video";
-        return "ask";
+      function showEstimating() {
+        column.classList.remove("is-done");
+        review.hidden = true;
+        rangeEl.textContent = "";
+        track.hidden = true;
+        estimating.hidden = false;
+        player.hidden = true;
+        cardEl.hidden = true;
+        activityEl.hidden = true;
       }
 
       function render(state) {
+        lastState = state;
         const session = state?.session;
-        const card = state?.card;
-        const activity = state?.activity || [];
         const now = state?.now || Date.now();
+        const card = visibleCard(session, state?.card);
+        const ready = !!(session && session.stack?.length && session.cards?.length);
 
-        if (!session) {
-          stage.classList.remove("has-session");
-          on(meta, false);
-          on(hair, false);
-          on(whisper, false);
-          setMode("empty");
+        if (session?.id && session.id !== sessionId) {
+          sessionId = session.id;
+          videoIndex = 0;
+          manualPick = false;
+          chipsEl.replaceChildren();
+          cardEl.dataset.id = "";
+          activityEl.dataset.sig = "";
+          upnext.dataset.sig = "";
+          announce.textContent = "";
+        }
+
+        if (session?.stack?.length) {
+          syncChips(session.stack);
+        }
+
+        if (!ready) {
+          showEstimating();
           return;
         }
 
-        stage.classList.add("has-session");
-        on(meta, true);
-        on(hair, true);
-        stackEl.textContent = (session.stack || []).join(" · ") || "Meanwhile";
-        etaEl.textContent = session.estimate?.label || "";
-        bar.style.width = `${progressPct(session, now)}%`;
+        estimating.hidden = true;
+        const stopped = session.codingAgent?.status === "stopped";
+        const endMs = stopped && session.codingAgent?.stoppedAt
+          ? Date.parse(session.codingAgent.stoppedAt)
+          : now;
+        const bucket = liveBucket(session.estimate, session.codingAgent?.startedAt, endMs);
+        column.classList.toggle("is-done", stopped);
+        review.hidden = !stopped;
+        rangeEl.textContent = bucket.slipped
+          ? `· Running long · ${bucket.label}`
+          : `· ${bucket.label}`;
 
-        const next = pickMode(session, card);
-        setMode(next);
+        const pct = Math.max(2, Math.min(100, (bucket.elapsed / bucket.max) * 100));
+        track.hidden = false;
+        bar.style.width = `${stopped ? Math.min(pct, 100) : pct}%`;
+        track.setAttribute("aria-valuenow", String(Math.round(pct)));
+        const minutes = Math.max(0, Math.round(bucket.elapsed / 60));
+        track.setAttribute(
+          "aria-valuetext",
+          `About ${minutes} ${minutes === 1 ? "minute" : "minutes"} into an estimated ${bucket.label.replace("~", "")}`
+        );
 
-        if (next === "video") {
-          renderVideo(session.videos[0]);
-          const line =
-            activity.slice().reverse().find((a) => a.excerpt)?.excerpt ||
-            card?.title ||
-            "";
-          on(whisper, !!line);
-          whisper.textContent = line;
-        } else if (next === "ask") {
-          renderAsk(card);
-          const line = activity.slice().reverse().find((a) => a.excerpt)?.excerpt;
-          on(whisper, !!line);
-          whisper.textContent = line || "";
-        } else if (next === "done") {
-          const stopped = session.codingAgent?.status === "stopped";
-          doneEl.innerHTML = `<strong>${
-            stopped ? "Agent finished" : "You’re caught up"
-          }</strong>Review the diff when you’re ready.`;
-          on(whisper, false);
+        if (stopped && announcedFor !== session.id) {
+          announcedFor = session.id;
+          announce.textContent = "Agent finished.";
+        }
+        if (stopped && pausedFor !== session.id) {
+          pausedFor = session.id;
+          pauseVideo();
+        }
+
+        const videos = session.videos || [];
+        player.hidden = videos.length === 0;
+        if (videos.length) {
+          videoIndex = autoIndex(videos, session, now);
+          const current = videos[Math.min(videoIndex, videos.length - 1)];
+          ensureVideo(current);
+          syncUpNext(videos, videoIndex);
+          const offlineSet = videos.every(
+            (video) => video.offline || video.source === "curated"
+          );
+          offline.hidden = !offlineSet;
         } else {
-          on(whisper, false);
+          offline.hidden = true;
+          upnextLabel.hidden = true;
         }
 
-        if (state?.voiceUri && state.voiceUri !== lastVoiceUri) {
-          lastVoiceUri = state.voiceUri;
-          voice.src = state.voiceUri;
-          voice.play().catch(() => {});
-        }
+        cardEl.hidden = !card;
+        if (card) renderCard(card);
+
+        activityEl.hidden = false;
+        syncActivity(activityLines(state?.activity || []));
       }
 
       window.addEventListener("message", (event) => {
         if (event.data?.type === "state") render(event.data.payload);
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.metaKey || event.ctrlKey || event.altKey) return;
+        const choice = cardEl.querySelectorAll(".choice");
+        if (!choice.length || cardEl.hidden) return;
+        const index = Number(event.key) - 1;
+        if (index >= 0 && index < choice.length) {
+          event.preventDefault();
+          choice[index].click();
+        }
       });
 
       vscode.postMessage({ type: "ready" });

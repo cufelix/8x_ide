@@ -1,4 +1,7 @@
 import { randomUUID } from "node:crypto";
+import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { loadMeanwhileEnv } from "./env.mjs";
 import { estimateDuration } from "./estimate.mjs";
 import { generateLesson, generatorId } from "./generators/index.mjs";
@@ -16,6 +19,11 @@ import {
 import { buildWaitPlan } from "./wait-plan.mjs";
 import { researchVideos } from "./youtube.mjs";
 import { maybeSpeak } from "./voice.mjs";
+
+const require = createRequire(import.meta.url);
+const { toActivitySentence } = require(
+  join(dirname(fileURLToPath(import.meta.url)), "../extension/media/activity-line.js")
+);
 
 loadMeanwhileEnv();
 
@@ -38,7 +46,7 @@ export async function onPromptSubmitted({
 
   const stack = extractStack(prompt);
   const estimate = estimateDuration(prompt, stack);
-  const videos = await researchVideos({ stack, prompt });
+  const videos = await researchVideos({ stack, prompt, estimate });
   const cards = await generateLesson({
     prompt,
     repoHints,
@@ -150,7 +158,11 @@ export function onCodingAgentStop({ conversationId, status }) {
  */
 export function onAgentThought({ thought, conversationId }) {
   const excerpt = thought ? String(thought).slice(0, 400) : null;
-  appendActivity({ kind: "thought", excerpt });
+  appendActivity({
+    kind: "thought",
+    excerpt,
+    line: excerpt ? toActivitySentence(excerpt) : "",
+  });
 
   const session = loadSession();
   if (!session || session.codingAgent?.status === "stopped") {
@@ -173,11 +185,13 @@ export function onAgentThought({ thought, conversationId }) {
 }
 
 export function onFileEdit({ path: filePath, tool }) {
+  const excerpt = filePath ? `Editing ${filePath}` : "Editing a file";
   appendActivity({
     kind: "file_edit",
     path: filePath || null,
     tool: tool || null,
-    excerpt: filePath ? `Editing ${filePath}` : "Editing a file",
+    excerpt,
+    line: toActivitySentence(excerpt),
   });
   return { ok: true };
 }
@@ -277,7 +291,7 @@ export async function startDemoSession(prompt) {
   return onPromptSubmitted({
     prompt:
       prompt ||
-      "Add Stripe checkout to this Next.js site with Postgres for orders.",
+      "Add Stripe checkout to this Next.js site.",
     conversationId: `demo-${Date.now()}`,
     repoHints: [],
   });
