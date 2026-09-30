@@ -16,6 +16,11 @@
         "command": "node \"${CURSOR_PLUGIN_ROOT}/hooks/after-file-edit.mjs\""
       }
     ],
+    "postToolUse": [
+      {
+        "command": "node \"${CURSOR_PLUGIN_ROOT}/hooks/post-tool-use.mjs\""
+      }
+    ],
     "afterAgentThought": [
       {
         "command": "node \"${CURSOR_PLUGIN_ROOT}/hooks/after-agent-thought.mjs\""

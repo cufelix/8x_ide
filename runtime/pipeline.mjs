@@ -1,284 +1,254 @@
 import { randomUUID } from "node:crypto";
+import { spawn } from "node:child_process";
+import { dirname, join, relative, isAbsolute } from "node:path";
+import { fileURLToPath } from "node:url";
+import { describeEdit, describeThought, summarizeChanges } from "./activity.mjs";
 import { loadMeanwhileEnv } from "./env.mjs";
 import { estimateDuration } from "./estimate.mjs";
-import { generateLesson, generatorId } from "./generators/index.mjs";
 import { projectDir } from "./paths.mjs";
-import { extractStack, mergeStack } from "./stack.mjs";
 import {
-  awardXp,
-  emitEvent,
-  loadPlayer,
-  loadSession,
-  savePlayer,
-  saveSession,
+  answerQuestion as answerQ,
+  CONSTRAINT_PREFIX,
+  constraintMessage,
+  markDelivered,
+  questionFor,
+} from "./question.mjs";
+import { extractStack, mergeStack, stackFromEdit } from "./stack.mjs";
+import {
   appendActivity,
+  emitEvent,
+  loadSession,
+  saveAnswer,
+  saveSession,
+  withSessionLock,
 } from "./store.mjs";
-import { buildWaitPlan } from "./wait-plan.mjs";
-import { researchVideos } from "./youtube.mjs";
-import { maybeSpeak } from "./voice.mjs";
+import { curatedForStack, orderForEstimate } from "./youtube.mjs";
 
 loadMeanwhileEnv();
 
-function looksLikeMeanwhilePrompt(prompt) {
+const here = dirname(fileURLToPath(import.meta.url));
+
+function isMeanwhileCommand(prompt) {
   const p = String(prompt || "").trim();
-  if (!p) {
-    return true;
-  }
-  return /^\/meanwhile\b/i.test(p);
+  // Our own stop-hook follow-up must not start a new run.
+  return !p || /^\/meanwhile\b/i.test(p) || p.startsWith(CONSTRAINT_PREFIX);
 }
 
-export async function onPromptSubmitted({
-  prompt,
-  conversationId,
-  repoHints = [],
-}) {
-  if (looksLikeMeanwhilePrompt(prompt)) {
+const DUPLICATE_WINDOW_MS = 15000;
+
+/**
+ * The same hook can be installed twice (user-level ~/.cursor/hooks.json and
+ * the project's .cursor/hooks.json); one prompt must start one run.
+ */
+export function isDuplicateSubmit(session, { prompt, conversationId }, now = Date.now()) {
+  if (!session?.source) return false;
+  const age = now - Date.parse(session.source.capturedAt);
+  return (
+    age >= 0 &&
+    age < DUPLICATE_WINDOW_MS &&
+    session.source.prompt === String(prompt || "") &&
+    (session.source.conversationId || null) === (conversationId || null)
+  );
+}
+
+/** A hook from another chat must not touch this run. */
+function belongs(session, conversationId) {
+  return (
+    !session?.source?.conversationId ||
+    !conversationId ||
+    session.source.conversationId === conversationId
+  );
+}
+
+function isRunning(session) {
+  return session?.codingAgent?.status === "running";
+}
+
+/**
+ * Prompt hook: write a complete session from local data only (no network),
+ * then hand network work to a detached enrich process.
+ */
+export function onPromptSubmitted({ prompt, conversationId }, { enrich = true } = {}) {
+  if (isMeanwhileCommand(prompt)) {
     return { skipped: true, reason: "meanwhile-command" };
   }
-
   const stack = extractStack(prompt);
   const estimate = estimateDuration(prompt, stack);
-  const videos = await researchVideos({ stack, prompt });
-  const cards = await generateLesson({
-    prompt,
-    repoHints,
-    stack,
-    estimate,
-    videos,
-  });
-  const waitPlan = buildWaitPlan({ estimate, videos, cards, stack });
-
+  const now = new Date().toISOString();
   const session = {
-    version: 1,
+    version: 2,
     id: randomUUID(),
-    status: "queued",
     source: {
       prompt: String(prompt || ""),
       conversationId: conversationId || null,
       projectDir: projectDir(),
-      capturedAt: new Date().toISOString(),
-    },
-    generator: {
-      id: generatorId(),
-      model:
-        process.env.MEANWHILE_MODEL ||
-        process.env.OPENROUTER_MODEL ||
-        (generatorId() === "llm" ? "openai/gpt-4.1-mini" : null),
+      capturedAt: now,
     },
     stack,
     estimate,
-    videos,
-    waitPlan,
-    cards,
-    cursor: 0,
-    answers: [],
-    codingAgent: {
-      status: "running",
-      startedAt: new Date().toISOString(),
-      stoppedAt: null,
-    },
+    videos: orderForEstimate(curatedForStack(stack), estimate),
+    question: questionFor({ prompt, stack, estimate }),
+    activity: { line: "reading the request", at: now },
+    files: [],
+    summary: null,
+    codingAgent: { status: "running", startedAt: now, stoppedAt: null },
   };
-
-  saveSession(session);
-  appendActivity({
-    kind: "session_start",
-    excerpt: stack.length
-      ? `Stack reaction: ${stack.join(", ")} · ${estimate.label}`
-      : `Session started · ${estimate.label}`,
+  const saved = withSessionLock(() => {
+    if (isDuplicateSubmit(loadSession(), { prompt, conversationId })) return false;
+    saveSession(session);
+    return true;
   });
-  // Non-blocking voice preview (ElevenLabs when keyed).
-  const spoken = stack.length
-    ? `Meanwhile. About ${estimate.label.replace("~", "")}. Looking at ${stack.slice(0, 3).join(", ")}.`
-    : `Meanwhile. Estimated wait ${estimate.label}.`;
-  void maybeSpeak(spoken);
-  emitEvent(
-    "prompt_submitted",
-    { conversationId: session.source.conversationId, stack, estimate },
-    session.id
-  );
-  emitEvent("lesson_queued", { cardCount: cards.length }, session.id);
+  if (!saved) return { skipped: true, reason: "duplicate-hook" };
+  appendActivity({ kind: "session_start", excerpt: `${estimate.label} · ${stack.join(", ") || "no stack"}` });
+  emitEvent("prompt_submitted", { stack, estimate: estimate.label, question: session.question?.id ?? null }, session.id);
+  if (enrich) spawnEnrich(session.id);
   return { skipped: false, session };
+}
+
+function spawnEnrich(sessionId) {
+  if (process.env.MEANWHILE_NO_ENRICH === "1") return;
+  try {
+    const child = spawn(process.execPath, [join(here, "enrich.mjs"), sessionId], {
+      cwd: projectDir(),
+      env: { ...process.env, CURSOR_PROJECT_DIR: projectDir() },
+      detached: true,
+      stdio: "ignore",
+    });
+    child.unref();
+  } catch (err) {
+    console.error("[meanwhile] enrich spawn:", err?.message || err);
+  }
+}
+
+function updateSessionUnlocked(sessionId, update) {
+  const session = loadSession();
+  if (!session || session.id !== sessionId) return null;
+  const next = update(session);
+  if (next && next !== session) saveSession(next);
+  return next;
 }
 
 export function onCodingSessionStart({ conversationId }) {
   const session = loadSession();
-  if (!session || session.status === "completed") {
-    return { skipped: true };
-  }
-  if (!session.codingAgent?.startedAt) {
-    session.codingAgent = {
-      ...session.codingAgent,
-      status: "running",
-      startedAt: new Date().toISOString(),
-    };
-    saveSession(session);
-  }
+  if (!session || !belongs(session, conversationId)) return { skipped: true };
   emitEvent("coding_session_start", { conversationId }, session.id);
   return { skipped: false, session };
 }
 
-export function onCodingAgentStop({ conversationId, status }) {
+function onAgentThoughtUnlocked({ thought, conversationId }) {
+  const line = describeThought(thought);
   const session = loadSession();
-  if (!session) {
+  if (!session || !isRunning(session) || !belongs(session, conversationId) || !line) {
     return { skipped: true };
   }
-  const matches =
-    !session.source.conversationId ||
-    session.source.conversationId === conversationId;
-  if (!matches) {
-    return { skipped: true, reason: "other-conversation" };
+  const next = { ...session, activity: { line, at: new Date().toISOString() } };
+  saveSession(next);
+  appendActivity({ kind: "thought", excerpt: line });
+  return { skipped: false, session: next };
+}
+
+function toProjectPath(filePath) {
+  if (!filePath) return null;
+  return isAbsolute(filePath) ? relative(projectDir(), filePath) || filePath : filePath;
+}
+
+function onFileEditUnlocked({ path: filePath, edits = [], conversationId }) {
+  const rel = toProjectPath(filePath);
+  const session = loadSession();
+  if (!rel || !session || !isRunning(session) || !belongs(session, conversationId)) {
+    return { skipped: true };
   }
-  session.codingAgent = {
-    ...session.codingAgent,
-    status: "stopped",
-    stoppedAt: new Date().toISOString(),
-    stopStatus: status || "completed",
+  const list = Array.isArray(edits) ? edits : [];
+  const isNew = list.length > 0 && list.every((e) => !e?.old_string);
+  const files = session.files || [];
+  const known = files.find((f) => f.path === rel);
+  const line = describeEdit(rel);
+  const next = {
+    ...session,
+    stack: mergeStack(session.stack || [], stackFromEdit(rel, list)),
+    files: known ? files : [...files, { path: rel, isNew }],
+    activity: line ? { line, at: new Date().toISOString() } : session.activity,
   };
-  session.status =
-    session.status === "completed" ? "completed" : session.status;
-  saveSession(session);
-  appendActivity({
-    kind: "agent_stop",
-    excerpt: "Agent finished — review the diff before you close Meanwhile.",
-  });
-  emitEvent("coding_agent_stopped", { status }, session.id);
-  return { skipped: false, session };
+  saveSession(next);
+  appendActivity({ kind: "file_edit", path: rel, excerpt: line });
+  return { skipped: false, session: next };
 }
 
 /**
- * Enrich session from live agent thoughts (stack + activity).
+ * postToolUse: hand the user's answer to the agent once, as additional context.
+ * @returns {{ additional_context?: string }}
  */
-export function onAgentThought({ thought, conversationId }) {
-  const excerpt = thought ? String(thought).slice(0, 400) : null;
-  appendActivity({ kind: "thought", excerpt });
-
+function onPostToolUseUnlocked({ conversationId }) {
   const session = loadSession();
-  if (!session || session.codingAgent?.status === "stopped") {
-    return { skipped: !session, session };
-  }
-  if (
-    session.source.conversationId &&
-    conversationId &&
-    session.source.conversationId !== conversationId
-  ) {
-    return { skipped: true, reason: "other-conversation" };
-  }
-
-  const found = extractStack(excerpt || "");
-  if (found.length) {
-    session.stack = mergeStack(session.stack || [], found);
-    saveSession(session);
-  }
-  return { skipped: false, session };
+  if (!session || !isRunning(session) || !belongs(session, conversationId)) return {};
+  const message = constraintMessage(session.question);
+  if (!message || session.question.answer.deliveredAt) return {};
+  saveSession({ ...session, question: markDelivered(session.question) });
+  emitEvent("constraint_delivered", { via: "postToolUse" }, session.id);
+  return { additional_context: message };
 }
 
-export function onFileEdit({ path: filePath, tool }) {
-  appendActivity({
-    kind: "file_edit",
-    path: filePath || null,
-    tool: tool || null,
-    excerpt: filePath ? `Editing ${filePath}` : "Editing a file",
+/**
+ * stop: if the user answered after the agent's last tool call, send the
+ * constraint as a follow-up once; otherwise switch the panel to "Review the diff".
+ * @returns {{ followup_message?: string }}
+ */
+function onCodingAgentStopUnlocked({ conversationId, status, loopCount = 0 }) {
+  const session = loadSession();
+  if (!session || !belongs(session, conversationId)) return {};
+  const message = constraintMessage(session.question);
+  if (message && !session.question.answer.deliveredAt && loopCount === 0 && status !== "aborted") {
+    saveSession({ ...session, question: markDelivered(session.question) });
+    emitEvent("constraint_delivered", { via: "stop" }, session.id);
+    return { followup_message: message };
+  }
+  const summary = summarizeChanges(session.files || [], session.source?.prompt);
+  saveSession({
+    ...session,
+    summary,
+    codingAgent: {
+      ...session.codingAgent,
+      status: "stopped",
+      stoppedAt: new Date().toISOString(),
+      stopStatus: status || "completed",
+    },
   });
-  return { ok: true };
+  appendActivity({ kind: "agent_stop", excerpt: summary });
+  emitEvent("coding_agent_stopped", { status, summary }, session.id);
+  return {};
 }
 
-export function startLesson() {
+/** Record the user's pick (MCP / scripts). The extension writes the same shape. */
+export function answerQuestion({ choiceId }) {
   const session = loadSession();
-  if (!session) {
-    return { ok: false, error: "no_session" };
+  if (!session?.question) return { ok: false, error: "no_question" };
+  const question = answerQ(session.question, choiceId);
+  if (question === session.question) {
+    return { ok: false, error: session.question.answer ? "already_answered" : "unknown_choice" };
   }
-  if (session.status === "queued" || session.status === "idle") {
-    session.status = "active";
-    saveSession(session);
-    emitEvent("lesson_started", { cursor: session.cursor }, session.id);
-  }
-  return { ok: true, session };
+  saveAnswer(session.id, choiceId);
+  emitEvent("question_answered", { choiceId }, session.id);
+  return { ok: true, constraint: question.answer.constraint };
 }
 
-export function currentCard(session = loadSession()) {
-  if (!session) {
-    return null;
-  }
-  return session.cards[session.cursor] ?? null;
-}
+const locked =
+  (fn) =>
+  (...args) =>
+    withSessionLock(() => fn(...args));
 
-export function submitAnswer({ choiceId, text }) {
-  const session = loadSession();
-  if (!session) {
-    return { ok: false, error: "no_session" };
-  }
-  if (session.status === "queued" || session.status === "idle") {
-    session.status = "active";
-  }
-  if (session.status !== "active") {
-    return { ok: false, error: "no_active_session" };
-  }
-  const card = currentCard(session);
-  if (!card) {
-    return { ok: false, error: "no_card" };
-  }
+/** Save only if the session on disk is still the one the caller started with. */
+export const updateSession = locked(updateSessionUnlocked);
+export const onAgentThought = locked(onAgentThoughtUnlocked);
+export const onFileEdit = locked(onFileEditUnlocked);
+export const onPostToolUse = locked(onPostToolUseUnlocked);
+export const onCodingAgentStop = locked(onCodingAgentStopUnlocked);
 
-  const correct =
-    card.expectedChoiceId == null
-      ? null
-      : choiceId === card.expectedChoiceId;
-
-  session.answers.push({
-    cardId: card.id,
-    choiceId: choiceId ?? null,
-    text: text ?? null,
-    correct,
-    at: new Date().toISOString(),
-  });
-  session.cursor += 1;
-  if (session.waitPlan) {
-    session.waitPlan.cursor = Math.min(
-      (session.waitPlan.cursor || 0) + 1,
-      session.waitPlan.segments.length
-    );
-  }
-  saveSession(session);
-  emitEvent(
-    "card_answered",
-    { cardId: card.id, kind: card.kind, correct, xp: card.xp },
-    session.id
+export function startDemoSession(prompt, opts) {
+  return onPromptSubmitted(
+    {
+      prompt: prompt || "Add Stripe checkout to this Next.js site with Postgres for orders.",
+      conversationId: `demo-${Date.now()}`,
+    },
+    opts
   );
-  return { ok: true, session, card, correct };
-}
-
-export function completeSession() {
-  const session = loadSession();
-  if (!session) {
-    return { ok: false, error: "no_session" };
-  }
-  session.status = "completed";
-  saveSession(session);
-
-  const earned = session.answers.reduce((sum, answer) => {
-    const card = session.cards.find((item) => item.id === answer.cardId);
-    if (!card) {
-      return sum;
-    }
-    if (answer.correct === false) {
-      return sum + Math.floor(card.xp / 2);
-    }
-    return sum + card.xp;
-  }, 0);
-
-  const player = awardXp(loadPlayer(), earned);
-  player.lessonsCompleted += 1;
-  savePlayer(player);
-  emitEvent("lesson_completed", { xp: earned }, session.id);
-  return { ok: true, session, player, xp: earned };
-}
-
-/** Manual / demo entry: same as prompt submit. */
-export async function startDemoSession(prompt) {
-  return onPromptSubmitted({
-    prompt:
-      prompt ||
-      "Add Stripe checkout to this Next.js site with Postgres for orders.",
-    conversationId: `demo-${Date.now()}`,
-    repoHints: [],
-  });
 }

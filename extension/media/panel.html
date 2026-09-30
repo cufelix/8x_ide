@@ -6,24 +6,25 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Meanwhile</title>
     <style>
+      /* Colors come from the IDE theme; fallbacks keep the black stage outside Cursor. */
       :root {
-        --bg: #000;
-        --fg: #e8e8e8;
-        --muted: rgba(232, 232, 232, 0.48);
-        --faint: rgba(232, 232, 232, 0.28);
-        --line: rgba(232, 232, 232, 0.08);
-        --font: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui,
-          sans-serif;
+        --bg: var(--vscode-editor-background, #000);
+        --fg: var(--vscode-editor-foreground, #e8e8e8);
+        --muted: var(--vscode-descriptionForeground, rgba(232, 232, 232, 0.55));
+        --faint: color-mix(in srgb, var(--fg) 32%, transparent);
+        --line: var(--vscode-widget-border, color-mix(in srgb, var(--fg) 10%, transparent));
+        --accent: var(--vscode-focusBorder, #3794ff);
+        --hover: var(--vscode-list-hoverBackground, color-mix(in srgb, var(--fg) 6%, transparent));
+        --pick-bg: var(--vscode-list-activeSelectionBackground, color-mix(in srgb, var(--accent) 22%, transparent));
+        --pick-fg: var(--vscode-list-activeSelectionForeground, var(--fg));
+        --font: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif);
         --pad: clamp(16px, 4vw, 28px);
-        --focus-w: min(100%, 380px);
+        --col: min(100%, 380px);
       }
 
-      * {
-        box-sizing: border-box;
-      }
+      * { box-sizing: border-box; }
 
-      html,
-      body {
+      html, body {
         margin: 0;
         height: 100%;
         background: var(--bg);
@@ -39,501 +40,396 @@
         position: relative;
         height: 100%;
         width: 100%;
-        background:
-          radial-gradient(
-            ellipse 70% 55% at 50% 40%,
-            rgba(255, 255, 255, 0.05) 0%,
-            transparent 65%
-          ),
-          #000;
+        container-type: inline-size;
+        background: radial-gradient(ellipse 70% 55% at 50% 40%, color-mix(in srgb, var(--fg) 4%, transparent) 0%, transparent 65%), var(--bg);
       }
 
-      /* Top: one quiet line */
-      .meta {
+      .top {
         position: absolute;
         inset: 0 0 auto 0;
         padding: 14px var(--pad) 0;
-        display: none;
-        align-items: center;
-        justify-content: space-between;
-        gap: 12px;
         z-index: 3;
-        color: var(--muted);
-        font-size: 11px;
-        letter-spacing: 0.02em;
+        display: none;
       }
+      .top.is-on { display: block; }
 
-      .meta.is-on {
-        display: flex;
-      }
-
-      .meta .left {
-        min-width: 0;
+      .header, .activity {
+        white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        white-space: nowrap;
+        letter-spacing: 0.02em;
       }
+      .header { color: var(--muted); font-size: 11px; }
+      .phase-stopped .header { color: var(--fg); font-weight: 500; font-size: 12px; }
+      .activity { color: var(--faint); font-size: 11px; margin-top: 2px; min-height: 16px; }
 
-      .meta .eta {
-        flex: 0 0 auto;
-        opacity: 0.9;
-      }
+      .hair { margin-top: 8px; height: 1px; background: var(--line); overflow: hidden; }
+      .hair > i { display: block; height: 100%; width: 0; background: var(--muted); transition: width 0.8s linear; }
 
-      .hair {
-        position: absolute;
-        left: var(--pad);
-        right: var(--pad);
-        top: 36px;
-        height: 1px;
-        background: var(--line);
-        display: none;
-        overflow: hidden;
-      }
-
-      .hair.is-on {
-        display: block;
-      }
-
-      .hair > i {
-        display: block;
-        height: 100%;
-        width: 0;
-        background: rgba(232, 232, 232, 0.35);
-        transition: width 0.8s linear;
-      }
-
-      /* Center focus — only one primary surface */
       .focus {
         position: absolute;
-        inset: 48px var(--pad) 56px;
+        inset: 64px var(--pad) 44px;
         display: grid;
         place-items: center;
+        overflow: auto;
       }
+      .column { width: var(--col); display: flex; flex-direction: column; gap: 22px; }
+      .block { display: none; animation: in 320ms ease-out both; }
+      .block.is-on { display: block; }
+      @keyframes in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
-      .surface {
-        display: none;
-        width: var(--focus-w);
-        animation: in 380ms ease-out both;
-      }
-
-      .surface.is-on {
-        display: block;
-      }
-
-      @keyframes in {
-        from {
-          opacity: 0;
-          transform: translateY(8px);
-        }
-        to {
-          opacity: 1;
-          transform: none;
-        }
-      }
-
-      /* Video — thumbnail card (webview embeds hit YouTube Error 153) */
-      .video {
+      /* Video */
+      .frame {
         width: 100%;
         aspect-ratio: 16 / 9;
         border-radius: 4px;
         overflow: hidden;
-        background: rgba(255, 255, 255, 0.02);
+        background: color-mix(in srgb, var(--fg) 4%, transparent);
         position: relative;
-        cursor: pointer;
-        border: 0;
-        padding: 0;
-        display: block;
       }
-
-      .video img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        display: block;
-        opacity: 0.92;
+      .frame iframe { width: 100%; height: 100%; border: 0; display: block; }
+      .thumb { all: unset; cursor: pointer; display: block; width: 100%; height: 100%; position: relative; }
+      .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+      .thumb span {
+        position: absolute; inset: 0; margin: auto; width: 48px; height: 48px; border-radius: 999px;
+        display: grid; place-items: center; padding-left: 3px;
+        background: rgba(0, 0, 0, 0.55); color: #fff; font-size: 16px;
       }
+      .thumb:focus-visible { outline: 1px solid var(--accent); }
+      .caption { margin-top: 8px; display: flex; gap: 8px; justify-content: space-between; font-size: 12px; }
+      .caption .title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .len { color: var(--muted); flex: 0 0 auto; font-variant-numeric: tabular-nums; }
+      .upnext { margin-top: 2px; display: flex; gap: 8px; justify-content: space-between; color: var(--muted); font-size: 11px; }
+      .upnext .title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-      .video .play {
-        position: absolute;
-        inset: 0;
-        display: grid;
-        place-items: center;
-        background: radial-gradient(
-          circle at center,
-          rgba(0, 0, 0, 0.35),
-          rgba(0, 0, 0, 0.55)
-        );
-      }
-
-      .video .play span {
-        width: 52px;
-        height: 52px;
-        border-radius: 999px;
-        border: 1px solid rgba(232, 232, 232, 0.35);
-        background: rgba(0, 0, 0, 0.45);
-        display: grid;
-        place-items: center;
-        color: #fff;
-        font-size: 18px;
-        padding-left: 3px;
-      }
-
-      .video-caption {
-        margin-top: 10px;
-        color: var(--muted);
-        font-size: 12px;
-        text-align: center;
-      }
-
-      /* Ask — typography first, no card chrome */
-      .ask .kicker {
-        color: var(--faint);
-        font-size: 10px;
-        letter-spacing: 0.14em;
-        text-transform: uppercase;
-        margin-bottom: 10px;
-      }
-
-      .ask h2 {
-        margin: 0 0 8px;
-        font-size: clamp(15px, 2.4vw, 18px);
-        font-weight: 500;
-        letter-spacing: -0.02em;
-        line-height: 1.25;
-      }
-
-      .ask p {
-        margin: 0 0 18px;
-        color: var(--muted);
-        font-size: 13px;
-        white-space: pre-wrap;
-        max-height: 28vh;
-        overflow: auto;
-      }
-
-      .choices {
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-      }
-
+      /* One card */
+      .kicker { color: var(--faint); font-size: 10px; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 8px; }
+      .card h2 { margin: 0 0 6px; font-size: 15px; font-weight: 500; letter-spacing: -0.01em; line-height: 1.3; }
+      .card p { margin: 0 0 12px; color: var(--muted); }
+      .choices { display: flex; flex-direction: column; gap: 2px; outline: none; }
       .choice {
-        appearance: none;
-        text-align: left;
-        width: 100%;
-        padding: 9px 0;
-        border: 0;
-        border-bottom: 1px solid var(--line);
-        background: transparent;
-        color: var(--fg);
-        font: inherit;
-        font-size: 13px;
-        cursor: pointer;
+        appearance: none; display: flex; gap: 10px; align-items: baseline; width: 100%; text-align: left;
+        padding: 8px 8px; border: 0; border-radius: 3px; background: transparent; color: var(--fg);
+        font: inherit; cursor: pointer;
       }
+      .choice kbd { font: inherit; font-size: 11px; color: var(--faint); min-width: 10px; }
+      .choice:hover { background: var(--hover); }
+      .choice.is-hi { box-shadow: inset 0 0 0 1px var(--accent); }
+      .choice.is-picked { background: var(--pick-bg); color: var(--pick-fg); }
+      .choice.is-picked kbd { color: inherit; }
+      .card.is-closing .choice:not(.is-picked) { opacity: 0.35; }
+      .hint { margin-top: 8px; color: var(--faint); font-size: 11px; }
+      .set { display: flex; gap: 8px; align-items: baseline; color: var(--muted); font-size: 12px; }
+      .set b { color: var(--fg); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-      .choice:last-child {
-        border-bottom: 0;
-      }
-
-      .choice:hover {
-        color: #fff;
-      }
-
-      .ask-actions {
-        display: flex;
-        justify-content: flex-end;
-        margin-top: 16px;
-      }
-
-      .ghost {
-        appearance: none;
-        border: 0;
-        background: transparent;
-        color: var(--muted);
-        font: inherit;
-        font-size: 12px;
-        cursor: pointer;
-        padding: 4px 0;
-      }
-
-      .ghost:hover {
-        color: var(--fg);
-      }
-
-      .done {
-        text-align: center;
-        color: var(--muted);
-      }
-
-      .done strong {
-        display: block;
-        color: var(--fg);
-        font-weight: 500;
-        margin-bottom: 6px;
-      }
-
-      /* Bottom whisper */
-      .whisper {
-        position: absolute;
-        left: var(--pad);
-        right: var(--pad);
-        bottom: 14px;
-        display: none;
-        color: var(--faint);
-        font-size: 11px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        text-align: center;
-      }
-
-      .whisper.is-on {
-        display: block;
-      }
+      /* Agent stopped */
+      .summary { font-size: 14px; }
+      .summary + button { margin-top: 10px; }
+      .ghost { appearance: none; border: 0; background: transparent; color: var(--muted); font: inherit; font-size: 12px; cursor: pointer; padding: 2px 0; }
+      .ghost:hover { color: var(--fg); }
 
       .mark {
-        position: absolute;
-        left: var(--pad);
-        bottom: 14px;
-        font-size: 11px;
-        color: var(--faint);
-        opacity: 0.55;
-        pointer-events: none;
+        position: absolute; left: var(--pad); bottom: 14px;
+        font-size: 11px; color: var(--faint); opacity: 0.7; pointer-events: none;
+        transition: opacity 240ms ease;
       }
 
-      .stage.has-session .mark {
-        display: none;
+      /* Running pulse before the header line */
+      .phase-running .header::before {
+        content: ""; display: inline-block; width: 6px; height: 6px; margin-right: 8px;
+        border-radius: 50%; background: var(--accent); vertical-align: 1px;
+        animation: pulse 2.4s ease-in-out infinite;
+      }
+      @keyframes pulse { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
+
+      .frame { border-radius: 10px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35); transition: border-radius 240ms ease; }
+      .column, .focus, .top { transition: opacity 240ms ease, inset 240ms ease; }
+
+      /* Narrow: you are working with the agent. Keep only what matters. */
+      @container (max-width: 380px) {
+        :root { --pad: 14px; }
+        .upnext, .hint, .card p, .activity { display: none; }
+        .focus { inset: 44px var(--pad) 36px; }
+        .column { gap: 14px; }
+        .card h2 { font-size: 13px; }
+        .choice { padding: 6px; font-size: 12px; }
+        .caption { font-size: 11px; }
       }
 
-      /* Narrow half-tab: tighter type, no video caption */
-      @container (max-width: 320px) {
-        .ask h2 {
-          font-size: 15px;
-        }
-        .video-caption {
-          display: none;
-        }
+      /* Theater: the video takes the whole window. */
+      .theater .top, .theater .caption, .theater .upnext, .theater .card, .theater #stopped, .theater .mark { opacity: 0; pointer-events: none; }
+      .theater .card, .theater #stopped { display: none; }
+      .theater .focus { inset: 0; }
+      .theater .column { width: 100%; height: 100%; justify-content: center; align-items: center; }
+      .theater #videoBlock { width: min(100%, calc(100vh * 16 / 9)); }
+      .theater .frame { border-radius: 0; box-shadow: none; }
+      .exit {
+        position: absolute; top: 12px; right: 12px; z-index: 5; display: none;
+        appearance: none; border: 0; border-radius: 999px; padding: 6px 12px;
+        background: rgba(0, 0, 0, 0.55); color: #fff; font: inherit; font-size: 11px; cursor: pointer;
+        opacity: 0; transition: opacity 200ms ease;
       }
-
-      .stage {
-        container-type: inline-size;
-      }
+      .theater .exit { display: block; }
+      .theater:hover .exit, .exit:focus-visible { opacity: 1; }
     </style>
   </head>
   <body>
     <div class="stage" id="stage">
-      <div class="meta" id="meta">
-        <div class="left" id="stack"></div>
-        <div class="eta" id="eta"></div>
+      <div class="top" id="top">
+        <div class="header" id="header"></div>
+        <div class="activity" id="activity"></div>
+        <div class="hair"><i id="bar"></i></div>
       </div>
-      <div class="hair" id="hair"><i id="bar"></i></div>
 
       <div class="focus">
-        <div class="surface" id="videoWrap">
-          <div id="video"></div>
-          <div class="video-caption" id="videoCap"></div>
+        <div class="column">
+          <div class="block" id="videoBlock">
+            <div class="frame" id="frame"></div>
+            <div class="caption"><span class="title" id="vTitle"></span><span class="len" id="vLen"></span></div>
+            <div class="upnext" id="upNext"></div>
+          </div>
+          <div class="block card" id="card"></div>
+          <div class="block" id="stopped">
+            <div class="summary" id="summary"></div>
+            <button class="ghost" type="button" id="openDiff">Open the diff</button>
+          </div>
         </div>
-        <div class="surface ask" id="ask"></div>
-        <div class="surface done" id="done"></div>
       </div>
 
-      <div class="whisper" id="whisper"></div>
       <div class="mark">Meanwhile</div>
+      <button class="exit" type="button" id="exitTheater">Esc · back</button>
     </div>
 
+    <script src="{{VIEW_MODEL}}"></script>
     <script>
       const vscode = acquireVsCodeApi();
-      const stage = document.getElementById("stage");
-      const meta = document.getElementById("meta");
-      const stackEl = document.getElementById("stack");
-      const etaEl = document.getElementById("eta");
-      const hair = document.getElementById("hair");
-      const bar = document.getElementById("bar");
-      const videoWrap = document.getElementById("videoWrap");
-      const videoEl = document.getElementById("video");
-      const videoCap = document.getElementById("videoCap");
-      const askEl = document.getElementById("ask");
-      const doneEl = document.getElementById("done");
-      const whisper = document.getElementById("whisper");
-      const voice = document.createElement("audio");
-      voice.preload = "auto";
-      document.body.appendChild(voice);
-      let lastVoiceUri = null;
+      const $ = (id) => document.getElementById(id);
+      const el = {
+        stage: $("stage"), top: $("top"), header: $("header"), activity: $("activity"), bar: $("bar"),
+        videoBlock: $("videoBlock"), frame: $("frame"), vTitle: $("vTitle"), vLen: $("vLen"), upNext: $("upNext"),
+        card: $("card"), stopped: $("stopped"), summary: $("summary"),
+      };
+      const voice = new Audio();
 
-      let lastVideoId = null;
-      let preferAsk = false;
-      /** @type {'ask' | 'video' | 'done' | 'empty'} */
-      let mode = "empty";
+      /** Last state from the extension, re-rendered on a clock tick. */
+      let last = null;
+      let playerBase = null;
+      let lastVoice = null;
+      let theater = false;
+      // Watch state: the player tells us what the user is doing.
+      const watch = { pinnedVideoId: null, minClip: 0, engaged: false, sessionId: null };
+      let loadedVideoId = null;
+      let iframe = null;
+      let playerReady = false;
+      let pendingLoad = null;
+      let brokenIds = new Set();
+      // Question state
+      let questionKey = null;
+      let hi = -1;
+      let picking = null;
 
-      function on(el, yes) {
-        el.classList.toggle("is-on", !!yes);
+      function on(node, yes) { node.classList.toggle("is-on", !!yes); }
+      function esc(s) {
+        return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
       }
-
-      function escapeHtml(s) {
-        return String(s)
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;")
-          .replace(/"/g, "&quot;");
-      }
-
-      function progressPct(session, now) {
-        const started = session?.codingAgent?.startedAt;
-        const max = session?.estimate?.secondsMax;
-        if (!started || !max) return 6;
-        const elapsed = (now - Date.parse(started)) / 1000;
-        return Math.max(3, Math.min(97, (elapsed / max) * 100));
-      }
-
-      function setMode(next) {
-        mode = next;
-        on(videoWrap, next === "video");
-        on(askEl, next === "ask");
-        on(doneEl, next === "done");
-        if (next !== "video") {
-          lastVideoId = null;
-          videoEl.innerHTML = "";
-        }
-      }
-
-      function renderVideo(primary) {
-        if (!primary?.videoId) return;
-        if (primary.videoId !== lastVideoId) {
-          lastVideoId = primary.videoId;
-          const thumb = `https://i.ytimg.com/vi/${encodeURIComponent(
-            primary.videoId
-          )}/hqdefault.jpg`;
-          videoEl.innerHTML = `
-            <button class="video" type="button" data-url="${escapeHtml(
-              primary.url ||
-                `https://www.youtube.com/watch?v=${primary.videoId}`
-            )}" title="Open on YouTube">
-              <img src="${thumb}" alt="" />
-              <div class="play"><span>▶</span></div>
-            </button>
-          `;
-          videoEl.querySelector("button.video")?.addEventListener("click", () => {
-            const url = videoEl.querySelector("button.video")?.dataset.url;
-            if (url) vscode.postMessage({ type: "openUrl", url });
-          });
-        }
-        videoCap.innerHTML = `${escapeHtml(
-          primary.title || ""
-        )} <button class="ghost" type="button" data-act="to-ask" style="margin-left:8px">Continue</button>`;
-        videoCap.querySelector("[data-act=to-ask]")?.addEventListener(
-          "click",
-          () => {
-            preferAsk = true;
-            vscode.postMessage({ type: "ready" });
-          }
-        );
-      }
-
-      function renderAsk(card) {
-        const choices = (card.choices || [])
-          .map(
-            (c) =>
-              `<button class="choice" type="button" data-id="${escapeHtml(
-                c.id
-              )}">${escapeHtml(c.label)}</button>`
-          )
-          .join("");
-        askEl.innerHTML = `
-          <div class="kicker">Meanwhile</div>
-          <h2>${escapeHtml(card.title || "")}</h2>
-          <p>${escapeHtml(card.body || "")}</p>
-          ${choices ? `<div class="choices">${choices}</div>` : ""}
-          <div class="ask-actions">
-            <button class="ghost" type="button" data-act="skip">Skip</button>
-          </div>
-        `;
-        askEl.querySelectorAll(".choice").forEach((btn) => {
-          btn.addEventListener("click", () => {
-            preferAsk = false;
-            vscode.postMessage({ type: "answer", choiceId: btn.dataset.id });
-          });
-        });
-        askEl.querySelector("[data-act=skip]")?.addEventListener("click", () => {
-          preferAsk = false;
-          vscode.postMessage({ type: "next" });
-        });
-      }
-
-      function pickMode(session, card) {
-        const stopped = session.codingAgent?.status === "stopped";
-        const finished =
-          session.status === "completed" ||
-          (session.cards && session.cursor >= session.cards.length);
-
-        if (finished || (stopped && !card)) return "done";
-        if (!card && session.videos?.[0]) return "video";
-        if (!card) return "empty";
-
-        const hasChoices = !!(card.choices && card.choices.length);
-        if (hasChoices || preferAsk) return "ask";
-        if (session.videos?.[0] && !preferAsk) return "video";
-        return "ask";
-      }
-
-      function render(state) {
-        const session = state?.session;
-        const card = state?.card;
-        const activity = state?.activity || [];
-        const now = state?.now || Date.now();
-
-        if (!session) {
-          stage.classList.remove("has-session");
-          on(meta, false);
-          on(hair, false);
-          on(whisper, false);
-          setMode("empty");
+      function toPlayer(msg) {
+        // Commands sent before the player page is up would be dropped; keep the latest load.
+        if (!playerReady) {
+          if (msg.cmd === "load") pendingLoad = msg;
           return;
         }
+        iframe?.contentWindow?.postMessage({ target: "meanwhile-player", ...msg }, "*");
+      }
 
-        stage.classList.add("has-session");
-        on(meta, true);
-        on(hair, true);
-        stackEl.textContent = (session.stack || []).join(" · ") || "Meanwhile";
-        etaEl.textContent = session.estimate?.label || "";
-        bar.style.width = `${progressPct(session, now)}%`;
+      function stopVideo() {
+        if (iframe) toPlayer({ cmd: "stop" });
+        el.frame.innerHTML = "";
+        iframe = null;
+        playerReady = false;
+        pendingLoad = null;
+        loadedVideoId = null;
+      }
 
-        const next = pickMode(session, card);
-        setMode(next);
+      function thumb(video) {
+        const src = `https://i.ytimg.com/vi/${encodeURIComponent(video.videoId)}/hqdefault.jpg`;
+        el.frame.innerHTML = `<button class="thumb" type="button" title="Open on YouTube"><img src="${src}" alt="" /><span>▶</span></button>`;
+        el.frame.querySelector("button").addEventListener("click", () => vscode.postMessage({ type: "openUrl", url: video.url }));
+        iframe = null;
+      }
 
-        if (next === "video") {
-          renderVideo(session.videos[0]);
-          const line =
-            activity.slice().reverse().find((a) => a.excerpt)?.excerpt ||
-            card?.title ||
-            "";
-          on(whisper, !!line);
-          whisper.textContent = line;
-        } else if (next === "ask") {
-          renderAsk(card);
-          const line = activity.slice().reverse().find((a) => a.excerpt)?.excerpt;
-          on(whisper, !!line);
-          whisper.textContent = line || "";
-        } else if (next === "done") {
-          const stopped = session.codingAgent?.status === "stopped";
-          doneEl.innerHTML = `<strong>${
-            stopped ? "Agent finished" : "You’re caught up"
-          }</strong>Review the diff when you’re ready.`;
-          on(whisper, false);
-        } else {
-          on(whisper, false);
+      function renderVideo(video, upNext) {
+        on(el.videoBlock, !!video);
+        if (!video) { stopVideo(); return; }
+        el.vTitle.textContent = video.title || "";
+        el.vLen.textContent = video.lengthLabel || "";
+        el.upNext.innerHTML = upNext
+          ? `<span class="title">Up next · ${esc(upNext.title)}</span><span class="len">${esc(upNext.lengthLabel || "")}</span>`
+          : "";
+        if (video.videoId === loadedVideoId) return;
+        loadedVideoId = video.videoId;
+        if (!playerBase || brokenIds.has(video.videoId)) { thumb(video); return; }
+        if (iframe) {
+          toPlayer({ cmd: "load", videoId: video.videoId, autoplay: watch.engaged });
+          return;
         }
+        el.frame.innerHTML = "";
+        playerReady = false;
+        pendingLoad = null;
+        iframe = document.createElement("iframe");
+        iframe.src = `${playerBase}/player?v=${encodeURIComponent(video.videoId)}`;
+        iframe.allow = "autoplay; encrypted-media; picture-in-picture; fullscreen";
+        iframe.referrerPolicy = "strict-origin-when-cross-origin";
+        iframe.title = video.title || "Video";
+        el.frame.appendChild(iframe);
+      }
 
-        if (state?.voiceUri && state.voiceUri !== lastVoiceUri) {
-          lastVoiceUri = state.voiceUri;
-          voice.src = state.voiceUri;
+      function renderQuestion(q) {
+        if (!q) { on(el.card, false); questionKey = null; return; }
+        on(el.card, true);
+        if (q.state === "set") {
+          const key = `set:${q.line}`;
+          if (questionKey === key || picking) return;
+          questionKey = key;
+          el.card.classList.remove("is-closing");
+          el.card.innerHTML = `<div class="set"><span>Constraint</span><b title="${esc(q.line)}">${esc(q.line)}</b></div>`;
+          return;
+        }
+        const key = `open:${q.title}`;
+        if (questionKey === key) return;
+        questionKey = key;
+        hi = -1;
+        el.card.classList.remove("is-closing");
+        el.card.innerHTML = `
+          <div class="kicker">${esc(q.kicker)}</div>
+          <h2>${esc(q.title)}</h2>
+          ${q.body ? `<p>${esc(q.body)}</p>` : ""}
+          <div class="choices" tabindex="-1">
+            ${q.choices.map((c, i) => `<button class="choice" type="button" data-id="${esc(c.id)}"><kbd>${i + 1}</kbd><span>${esc(c.label)}</span></button>`).join("")}
+          </div>
+          <div class="hint">1–3 to answer · Ctrl+Alt+M then Enter</div>`;
+        el.card.querySelectorAll(".choice").forEach((btn) => btn.addEventListener("click", () => pick(btn.dataset.id)));
+      }
+
+      function choiceButtons() { return [...el.card.querySelectorAll(".choice")]; }
+
+      function highlight(i) {
+        const buttons = choiceButtons();
+        if (!buttons.length) return;
+        hi = (i + buttons.length) % buttons.length;
+        buttons.forEach((b, j) => b.classList.toggle("is-hi", j === hi));
+        buttons[hi].focus({ preventScroll: true });
+      }
+
+      /** Mark the pick, hold a beat, then collapse to the one-line constraint. */
+      function pick(choiceId) {
+        if (!choiceId || picking) return;
+        picking = choiceId;
+        choiceButtons().forEach((b) => b.classList.toggle("is-picked", b.dataset.id === choiceId));
+        el.card.classList.add("is-closing");
+        vscode.postMessage({ type: "answer", choiceId });
+        setTimeout(() => { picking = null; questionKey = null; render(); }, 700);
+      }
+
+      function render() {
+        if (!last) return;
+        const session = last.session;
+        if (session?.id !== watch.sessionId) {
+          Object.assign(watch, { pinnedVideoId: null, minClip: 0, engaged: false, sessionId: session?.id ?? null });
+          brokenIds = new Set();
+        }
+        const view = MeanwhileView.buildView(session, Date.now() - (last.skew || 0), watch);
+        el.stage.className = `stage phase-${view.phase}${theater && view.video ? " theater" : ""}`;
+        if (theater && !view.video) vscode.postMessage({ type: "exitTheater" });
+
+        on(el.top, view.phase !== "none");
+        el.header.textContent = view.headerText || "";
+        el.activity.textContent = view.activityLine || "";
+        el.bar.style.width = `${view.progressPct}%`;
+
+        renderVideo(view.phase === "running" ? view.video : null, view.upNext);
+        if (view.video) watch.minClip = Math.max(watch.minClip, view.video.index);
+        renderQuestion(view.question);
+
+        on(el.stopped, view.phase === "stopped");
+        el.summary.textContent = view.summary || "";
+
+        if (last.voiceUri && last.voiceUri !== lastVoice) {
+          lastVoice = last.voiceUri;
+          voice.src = last.voiceUri;
           voice.play().catch(() => {});
         }
       }
 
       window.addEventListener("message", (event) => {
-        if (event.data?.type === "state") render(event.data.payload);
+        const data = event.data || {};
+        if (data.source === "meanwhile-player") {
+          if (!iframe || event.source !== iframe.contentWindow) return;
+          if (data.type === "state" && [0, 1, 2].includes(data.state)) {
+            vscode.postMessage({ type: "player", playing: data.state === 1 });
+          }
+          if (data.type === "ready") {
+            playerReady = true;
+            if (pendingLoad) toPlayer(pendingLoad);
+            pendingLoad = null;
+          } else if (data.type === "state" && (data.state === 1 || data.state === 2)) {
+            watch.engaged = data.state === 1 || watch.engaged;
+            watch.pinnedVideoId = loadedVideoId;
+          } else if (data.type === "state" && data.state === 0) {
+            watch.pinnedVideoId = null;
+            watch.minClip += 1;
+            render();
+          } else if (data.type === "error" && loadedVideoId) {
+            brokenIds.add(loadedVideoId);
+            loadedVideoId = null;
+            iframe = null;
+            playerReady = false;
+            render();
+          }
+          return;
+        }
+        if (data.type === "state") {
+          playerBase = data.payload.playerBase || null;
+          last = { ...data.payload, skew: Date.now() - data.payload.now };
+          render();
+        } else if (data.type === "theater") {
+          theater = !!data.on;
+          render();
+        } else if (data.type === "focusQuestion") {
+          if (choiceButtons().length && !picking) highlight(0);
+        } else if (data.type === "cycleChoice") {
+          if (choiceButtons().length && !picking) highlight(hi + 1);
+        }
       });
 
+      function leaveTheater() {
+        if (!theater) return;
+        toPlayer({ cmd: "pause" });
+        vscode.postMessage({ type: "exitTheater" });
+      }
+      $("exitTheater").addEventListener("click", leaveTheater);
+
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && theater) {
+          e.preventDefault();
+          leaveTheater();
+          return;
+        }
+        const buttons = choiceButtons();
+        if (!buttons.length || picking || e.ctrlKey || e.metaKey || e.altKey) return;
+        if (/^[1-3]$/.test(e.key) && buttons[Number(e.key) - 1]) {
+          e.preventDefault();
+          pick(buttons[Number(e.key) - 1].dataset.id);
+        } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+          e.preventDefault();
+          highlight(hi + (e.key === "ArrowDown" ? 1 : -1));
+        } else if (e.key === "Enter" && hi >= 0) {
+          e.preventDefault();
+          pick(buttons[hi].dataset.id);
+        }
+      });
+
+      $("openDiff").addEventListener("click", () => vscode.postMessage({ type: "openDiff" }));
+      setInterval(render, 1000);
       vscode.postMessage({ type: "ready" });
     </script>
   </body>

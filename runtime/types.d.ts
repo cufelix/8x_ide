@@ -1,97 +1,77 @@
-export type CardKind = "explain" | "decision" | "teach" | "quiz" | "video";
-
-export interface Choice {
-  id: string;
-  label: string;
-}
-
-export interface Card {
-  id: string;
-  kind: CardKind;
-  variant: string;
-  title: string;
-  body: string;
-  choices: Choice[] | null;
-  expectedChoiceId: string | null;
-  xp: number;
-  durationSec?: number;
-  media: { type: "none" | "video"; ref?: string };
-  contextRefs: string[];
-}
-
-export interface VideoItem {
-  query: string;
-  videoId: string;
-  title: string;
-  channel: string;
-  url: string;
-  durationSec?: number;
-}
-
 export interface Estimate {
   bucket: "short" | "medium" | "long" | "marathon";
   secondsMin: number;
   secondsMax: number;
+  /** "~6–10 min" */
   label: string;
-  confidence: string;
+  confidence: "low" | "medium";
   signals: string[];
 }
 
-export interface WaitSegment {
-  id: string;
-  type: "video" | "card" | "narration";
+export interface VideoItem {
+  videoId: string;
   title: string;
-  durationSec: number;
-  payloadRef: string;
+  channel: string;
+  url: string;
+  query: string;
+  /** null when the source did not say; such clips sort last. */
+  durationSec: number | null;
+  source: "curated" | "youtube-api" | "yt-dlp" | "results-page";
 }
 
-export interface LessonSession {
-  version: 1;
+export interface QuestionChoice {
   id: string;
-  status: "idle" | "queued" | "active" | "completed" | "abandoned";
+  label: string;
+  /** The sentence handed to the agent and shown once collapsed. */
+  constraint: string;
+}
+
+export interface Question {
+  id: string;
+  kicker: "Only you can decide";
+  title: string;
+  body: string;
+  choices: QuestionChoice[]; // exactly 3
+  answer: null | {
+    choiceId: string;
+    label: string;
+    constraint: string;
+    at: string;
+    /** Set once postToolUse / stop handed it to the agent. */
+    deliveredAt: string | null;
+  };
+}
+
+/** .meanwhile/session.json — written only by hooks. */
+export interface Session {
+  version: 2;
+  id: string;
   source: {
     prompt: string;
     conversationId: string | null;
     projectDir: string;
     capturedAt: string;
   };
-  generator: { id: "stub" | "llm"; model: string | null };
   stack: string[];
   estimate: Estimate;
+  /** Ordered: first clip fits the estimate; the rest is Up next. */
   videos: VideoItem[];
-  waitPlan: {
-    estimated: Estimate;
-    cursor: number;
-    segments: WaitSegment[];
-  };
-  cards: Card[];
-  cursor: number;
-  answers: Array<{
-    cardId: string;
-    choiceId: string | null;
-    text: string | null;
-    correct: boolean | null;
-    at: string;
-  }>;
+  question: Question | null;
+  activity: { line: string; at: string };
+  files: { path: string; isNew: boolean }[];
+  /** "Checkout route added, 4 files" once the agent stops. */
+  summary: string | null;
   codingAgent: {
     status: "running" | "stopped";
-    startedAt?: string | null;
+    startedAt: string;
     stoppedAt: string | null;
     stopStatus?: string;
   };
 }
 
-export interface Player {
-  version: 1;
-  xp: number;
-  streakDays: number;
-  lastActiveDate: string | null;
-  lessonsCompleted: number;
-}
-
-export interface MeanwhileEvent {
-  ts: string;
-  type: string;
-  sessionId: string | null;
-  payload: Record<string, unknown>;
+/** .meanwhile/answer.json — written only by the panel / MCP. */
+export interface AnswerFile {
+  sessionId: string;
+  choiceId: string;
+  at: string;
 }

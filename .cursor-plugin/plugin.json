@@ -1,8 +1,8 @@
 {
   "name": "meanwhile",
   "displayName": "Meanwhile",
-  "version": "0.1.0",
-  "description": "Duolingo-inside-the-IDE: while a coding agent runs, fill the wait with a gamified micro-lesson generated from the actual prompt and repo.",
+  "version": "0.3.0",
+  "description": "While a coding agent runs: how long the wait is, one clip for the stack, and the one question only you can answer.",
   "author": {
     "name": "Meanwhile"
   },
@@ -11,16 +11,12 @@
   "keywords": [
     "meanwhile",
     "idle-time",
-    "micro-learning",
-    "xp",
     "developer-tools",
     "hooks",
     "mcp"
   ],
   "category": "developer-tools",
   "tags": [
-    "learning",
-    "gamification",
     "agents",
     "waiting-room"
   ],

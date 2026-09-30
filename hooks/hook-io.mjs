@@ -1,9 +1,14 @@
+const STDIN_TIMEOUT_MS = 3000;
+
 function parseStdin() {
   const chunks = [];
   return new Promise((resolve) => {
+    // If the host never closes stdin, go with what arrived rather than hang.
+    const timer = setTimeout(() => process.stdin.emit("end"), STDIN_TIMEOUT_MS);
     process.stdin.setEncoding("utf8");
     process.stdin.on("data", (chunk) => chunks.push(chunk));
-    process.stdin.on("end", () => {
+    process.stdin.once("end", () => {
+      clearTimeout(timer);
       const raw = chunks.join("").trim();
       if (!raw) {
         resolve({});

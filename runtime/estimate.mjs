@@ -1,21 +1,29 @@
-const BUCKETS = {
-  short: { secondsMin: 120, secondsMax: 240, label: "~2–4 min" },
-  medium: { secondsMin: 300, secondsMax: 600, label: "~5–10 min" },
-  long: { secondsMin: 600, secondsMax: 1200, label: "~10–20 min" },
-  marathon: { secondsMin: 1200, secondsMax: 2400, label: "~20+ min" },
-};
-
 /**
- * Fast heuristic ETA from the prompt. Never blocks on network/LLM.
- * @param {string} prompt
- * @param {string[]} stack
+ * Fast heuristic ETA: how much work is in front of the agent.
+ * Never blocks on network/LLM. Output is a minute range, e.g. "~6–10 min".
  */
-export function estimateDuration(prompt, stack = []) {
+
+const BROAD_WORDS = /\b(refactor|migrate|from scratch|entire|whole|rewrite|all tests|every)\b/g;
+
+export function formatRange(secondsMin, secondsMax) {
+  const lo = Math.round(secondsMin / 60);
+  const hi = Math.round(secondsMax / 60);
+  return `~${lo}–${hi} min`;
+}
+
+function bucketFor(midMinutes) {
+  if (midMinutes <= 4) return "short";
+  if (midMinutes <= 10) return "medium";
+  if (midMinutes <= 20) return "long";
+  return "marathon";
+}
+
+function scorePrompt(prompt, stack) {
   const p = String(prompt || "").toLowerCase();
   const signals = [];
   let score = 0;
 
-  if (/\b(typo|rename|rename only|one line|quick fix|tiny)\b/.test(p)) {
+  if (/\b(typo|rename|one line|quick fix|tiny|small tweak)\b/.test(p)) {
     score -= 2;
     signals.push("narrow-scope");
   }
@@ -23,15 +31,16 @@ export function estimateDuration(prompt, stack = []) {
     score -= 1;
     signals.push("single-file");
   }
-  if (/\b(refactor|migrate|from scratch|entire|whole|rewrite|all tests)\b/.test(p)) {
-    score += 3;
+  const broad = new Set(p.match(BROAD_WORDS) || []);
+  if (broad.size) {
+    score += Math.min(6, broad.size * 2);
     signals.push("broad-scope");
   }
-  if (/\b(integrate|integration|checkout|payments?|auth|database|schema)\b/.test(p)) {
+  if (/\b(integrate|integration|checkout|payments?|auth|login|database|schema|webhooks?)\b/.test(p)) {
     score += 2;
     signals.push("integration");
   }
-  if ((p.match(/src\/|\.tsx?|\.jsx?|\.py|\.go/g) || []).length >= 3) {
+  if ((p.match(/src\/|\.tsx?\b|\.jsx?\b|\.py\b|\.go\b/g) || []).length >= 3) {
     score += 1;
     signals.push("many-paths");
   }
@@ -39,29 +48,31 @@ export function estimateDuration(prompt, stack = []) {
     score += 1;
     signals.push("multi-stack");
   }
-  if (stack.includes("Stripe") || stack.includes("Auth") || stack.includes("Prisma")) {
+  if (stack.some((s) => ["Stripe", "Auth", "Prisma"].includes(s))) {
     score += 1;
     signals.push("heavy-stack");
   }
-  if (signals.length === 0) {
+  if (!signals.length) {
     signals.push("default");
   }
+  return { score, signals };
+}
 
-  let bucket = "medium";
-  if (score <= -1) {
-    bucket = "short";
-  } else if (score >= 5) {
-    bucket = "marathon";
-  } else if (score >= 2) {
-    bucket = "long";
-  }
-
-  const meta = BUCKETS[bucket];
+/**
+ * @param {string} prompt
+ * @param {string[]} stack
+ */
+export function estimateDuration(prompt, stack = []) {
+  const { score, signals } = scorePrompt(prompt, stack);
+  // Each point is ~1 min up to a medium task, then work compounds.
+  const mid = Math.max(3, score <= 3 ? 5 + score : 8 + 2 * (score - 3));
+  const secondsMin = Math.max(1, Math.floor(mid * 0.75)) * 60;
+  const secondsMax = Math.ceil(mid * 1.25) * 60;
   return {
-    bucket,
-    secondsMin: meta.secondsMin,
-    secondsMax: meta.secondsMax,
-    label: meta.label,
+    bucket: bucketFor(mid),
+    secondsMin,
+    secondsMax,
+    label: formatRange(secondsMin, secondsMax),
     confidence: signals.includes("default") ? "low" : "medium",
     signals,
   };

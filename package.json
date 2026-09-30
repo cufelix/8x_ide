@@ -1,0 +1,12 @@
+{
+  "name": "meanwhile",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/*.test.mjs",
+    "demo": "node scripts/demo-session.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

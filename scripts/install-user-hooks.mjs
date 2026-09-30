@@ -16,7 +16,7 @@ const commands = {
   beforeSubmitPrompt: [
     {
       command: `node ${join(repoRoot, "hooks/before-submit-prompt.mjs")}`,
-      timeout: 20,
+      timeout: 5,
     },
   ],
   sessionStart: [
@@ -28,6 +28,12 @@ const commands = {
   afterFileEdit: [
     {
       command: `node ${join(repoRoot, "hooks/after-file-edit.mjs")}`,
+      timeout: 5,
+    },
+  ],
+  postToolUse: [
+    {
+      command: `node ${join(repoRoot, "hooks/post-tool-use.mjs")}`,
       timeout: 5,
     },
   ],

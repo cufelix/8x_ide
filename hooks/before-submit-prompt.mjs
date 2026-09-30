@@ -14,12 +14,10 @@ try {
     pathToFileURL(join(root, "runtime/pipeline.mjs")).href
   );
   const input = await parseStdin();
-  // Fire-and-forget heavy work after allowing the prompt through quickly:
-  // still await here but always continue:true so the agent is never blocked.
-  await onPromptSubmitted({
+  // Local-only write; network research runs in a detached enrich process.
+  onPromptSubmitted({
     prompt: promptFrom(input),
     conversationId: conversationIdFrom(input),
-    repoHints: [],
   });
   respond({ continue: true });
 } catch (err) {

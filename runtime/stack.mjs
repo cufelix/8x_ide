@@ -44,3 +44,44 @@ export function mergeStack(current = [], next = []) {
   }
   return out;
 }
+
+const IMPORT_HINTS = [
+  { id: "Stripe", re: /from ["'](@stripe\/[\w-]+|stripe)["']|require\(["']stripe["']\)/ },
+  { id: "Next.js", re: /from ["']next(\/[\w/-]+)?["']/ },
+  { id: "React", re: /from ["']react["']/ },
+  { id: "Prisma", re: /from ["']@prisma\/client["']/ },
+  { id: "Supabase", re: /from ["']@supabase\/[\w-]+["']/ },
+  { id: "Redis", re: /from ["'](ioredis|redis)["']/ },
+  { id: "GraphQL", re: /from ["'](graphql|@apollo\/[\w-]+)["']/ },
+  { id: "Vue", re: /from ["']vue["']/ },
+  { id: "Svelte", re: /from ["']svelte(\/[\w-]+)?["']/ },
+];
+
+const PATH_HINTS = [
+  { id: "Prisma", re: /(^|\/)schema\.prisma$/ },
+  { id: "Docker", re: /(^|\/)(Dockerfile|docker-compose\.ya?ml)$/ },
+  { id: "Tailwind", re: /(^|\/)tailwind\.config\.[jt]s$/ },
+  { id: "Next.js", re: /(^|\/)next\.config\.[mc]?[jt]s$/ },
+  { id: "TypeScript", re: /(^|\/)tsconfig\.json$/ },
+];
+
+/**
+ * Tech the agent actually touched in one edit: imports in the new text and
+ * well-known file names. Allowlist only — nothing outside TECH ids.
+ * @param {string | null} filePath
+ * @param {{ new_string?: string }[]} edits
+ */
+export function stackFromEdit(filePath, edits = []) {
+  const found = [];
+  const path = String(filePath || "").replace(/\\/g, "/");
+  for (const hint of PATH_HINTS) {
+    if (hint.re.test(path)) found.push(hint.id);
+  }
+  const text = (Array.isArray(edits) ? edits : [])
+    .map((e) => String(e?.new_string || ""))
+    .join("\n");
+  for (const hint of IMPORT_HINTS) {
+    if (hint.re.test(text) && !found.includes(hint.id)) found.push(hint.id);
+  }
+  return found;
+}

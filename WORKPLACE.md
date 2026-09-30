@@ -7,7 +7,7 @@ Get the waiting room running on real agent prompts (this repo or any work projec
 ```bash
 cd /home/felix/projects/slop_ide/extension
 npx @vscode/vsce package --allow-missing-repository --skip-license
-cursor --install-extension ./meanwhile-0.2.1.vsix --force
+cursor --install-extension ./meanwhile-0.3.0.vsix --force
 ```
 
 Then **Developer: Reload Window**.
@@ -28,8 +28,8 @@ Reload Cursor. Sessions land in that project's `.meanwhile/`.
 Export before launching Cursor (or put in your shell profile):
 
 ```bash
-export OPENROUTER_API_KEY="sk-or-..."   # smarter cards
-export ELEVENLABS_API_KEY="..."         # spoken intro
+export OPENROUTER_API_KEY="sk-or-..."   # proposes a question when the built-in ones don't fit
+export ELEVENLABS_API_KEY="..."         # spoken intro, only with MEANWHILE_VOICE=1
 # export YOUTUBE_API_KEY="..."          # official YT API (optional)
 ```
 
@@ -40,8 +40,10 @@ Restart Cursor after exporting so the GUI process inherits env.
 
 1. Open a project in Cursor (with extension installed).
 2. Start Agent and send something like: *Add Stripe checkout to this Next.js app*.
-3. Meanwhile panel should open beside the editor (~half screen) with ETA, stack, video/question.
-4. Or smoke without an agent: **Meanwhile: Start Demo Session** / `node scripts/demo-session.mjs "…"`.
+3. Meanwhile opens beside the editor: `Meanwhile · ~6–10 min · Stripe · Next.js`, a clip that fits the wait, and “Where should customers pay?”.
+4. Answer with 1–3 (or Ctrl+Alt+M, Enter). The agent receives the constraint on its next tool call.
+5. When the agent stops the header reads “Review the diff” and the column steps aside.
+6. Or smoke without an agent: **Meanwhile: Start Demo Session** / `node scripts/demo-session.mjs "…"`.
 
 ## 5. Verify hooks
 
@@ -51,3 +53,9 @@ cat .meanwhile/session.json | head
 ```
 
 Expect JSON `{"continue":true}` on stdout and a fresh `.meanwhile/session.json`.
+
+## 6. Tests
+
+```bash
+npm test
+```

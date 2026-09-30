@@ -4,7 +4,7 @@
     "beforeSubmitPrompt": [
       {
         "command": "node hooks/before-submit-prompt.mjs",
-        "timeout": 20
+        "timeout": 5
       }
     ],
     "sessionStart": [
@@ -16,6 +16,12 @@
     "afterFileEdit": [
       {
         "command": "node hooks/after-file-edit.mjs",
+        "timeout": 5
+      }
+    ],
+    "postToolUse": [
+      {
+        "command": "node hooks/post-tool-use.mjs",
         "timeout": 5
       }
     ],
