@@ -1,0 +1,45 @@
+Work widgets and vibe lessons
+
+The current Meanwhile widgets note already has the wait range, chips, player, decision card, activity line, and “Review the diff”. This adds a few work widgets around the run, and a lesson that feels like Duolingo or Brilliant: short, warm, one beat. The lesson still teaches the stack. It does not keep score.
+
+Work
+
+Prompt name
+
+The header names the task, then the range: Stripe checkout · ~6–10 min. The name is the user’s prompt, cut to a few words. It is a label. Nothing opens.
+
+The file just touched
+
+Under the activity sentence, one truncated path in monospace: app/checkout/route.ts. It replaces itself when the agent moves. It is not a tree and not the diff.
+
+Thought track
+
+The 2px track advances when the agent emits a thought or an edit, not on the clock. A still track means the run is quiet. If it stays still, the activity line changes once to “Quiet for a bit”.
+
+Vibe, still a lesson
+
+Take the gesture from Duolingo’s tip and its “here’s why”, from Brilliant’s one tap, and from a paper flashcard. Leave the owl, the streak flame, the hearts, the league, and the XP on those products.
+
+Tip
+
+Above the player, one friendly sentence, the fact for this stack: “You’ll want this: Stripe checks the payment on your server, not in the browser.” 13px, secondary text, no card chrome. It shows up with the clip. It reads like a tip at the start of a lesson, not a doc.
+
+Flip
+
+Tap the tip and it turns over, the way a Duolingo card or a Brilliant step turns over. The back is three monospace lines, the shape of the idea, not the agent’s diff:
+
+session = stripe.checkout.sessions.create(...)
+redirect(session.url)
+webhook verifies the event
+
+Tap again and the fact returns. One card, two sides. The lines swap if a new chip arrives.
+
+Kind correction
+
+Under the tip, one muted line when this stack has a known trap: “Easy to miss: trusting the amount from the browser.” Same voice as Duolingo’s correction sheet, the sentence that tells you why, with no red X and no lost heart. If this stack has no curated trap, the line stays absent.
+
+When the run ends
+
+The clip stops. The tip stays as one line under “Review the diff”, so the fact sits next to the review. The flip’s code side leaves with the player. The kind correction stays only if the diff still contains that trap.
+
+The decision card is still the only list of choices. No points, no streak, no “5 in a row”, no league.
