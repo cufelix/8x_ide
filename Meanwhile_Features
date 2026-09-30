@@ -1,0 +1,132 @@
+Meanwhile features
+
+The half-tab you sit with while a Cursor agent runs. The column is narrow, so each feature has to earn that space. Ordered by what makes the wait useful first.
+
+Live session
+
+
+
+
+
+Render .meanwhile/session.json, the file the hooks already write, instead of the static preview.
+
+
+
+Remove the Empty / Video / Ask / Both toggles once real session state drives the panel.
+
+
+
+Keep the layout from the black stage: centered column, video, one card, corner mark.
+
+
+
+Take colors from the IDE theme so the panel belongs in Cursor.
+
+What this wait is
+
+
+
+
+
+A header in one line: Meanwhile · ~6–10 min · Stripe · Next.js.
+
+
+
+Stack chips only for technologies on the allowlist that this task actually touches.
+
+
+
+A wait range from a small heuristic (how much work is in front of the agent), updated if the run runs long.
+
+
+
+One activity line in plain language (“wiring the checkout route”), refreshed as the agent moves.
+
+
+
+Something to watch
+
+
+
+
+
+One curated video chosen for the stack in the header, with a title and a length.
+
+
+
+An “Up next” line: the following clip’s title and length, not a playlist.
+
+
+
+A short fallback clip when no YouTube key is configured.
+
+
+
+A clip whose length fits the estimate, so a two-minute task does not open a twenty-minute video.
+
+
+
+When the estimate was short and the run continues, roll forward to Up next.
+
+
+
+One question
+
+
+
+
+
+A single card when the agent is blocked on a constraint the repo cannot answer. The reference card is “Only you can decide”.
+
+
+
+Three short choices. The picked choice is marked, then the card collapses to one line: the constraint you set.
+
+
+
+That answer goes back to the agent for the rest of the run.
+
+
+
+One open card at a time.
+
+
+
+Answer from the keyboard, with the same shortcut that opens the panel.
+
+
+
+When the agent stops
+
+
+
+
+
+The header switches to “Review the diff”.
+
+
+
+One sentence on what changed (“Checkout route added, 4 files”), then the column steps aside for the diff.
+
+
+
+The video stops with the run.
+
+
+
+Quiet by default
+
+
+
+
+
+The stage stays empty until a video or a question exists.
+
+
+
+The corner mark stays.
+
+
+
+No points, streaks, or a second list of goals and timers on this surface.
+
