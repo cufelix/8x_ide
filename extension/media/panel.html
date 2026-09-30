@@ -5,6 +5,7 @@
     <meta http-equiv="Content-Security-Policy" content="{{CSP}}" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Meanwhile</title>
+    <link rel="stylesheet" href="{{VIBE_CSS}}" />
     <style>
       /* Colors come from the IDE theme; fallbacks keep the black stage outside Cursor. */
       :root {
@@ -23,6 +24,7 @@
       }
 
       * { box-sizing: border-box; }
+      [hidden] { display: none !important; }
 
       html, body {
         margin: 0;
@@ -38,7 +40,7 @@
 
       .stage {
         position: relative;
-        height: 100%;
+        height: calc(100% - 52px);
         width: 100%;
         container-type: inline-size;
         background: radial-gradient(ellipse 70% 55% at 50% 40%, color-mix(in srgb, var(--fg) 4%, transparent) 0%, transparent 65%), var(--bg);
@@ -171,9 +173,34 @@
       }
       .theater .exit { display: block; }
       .theater:hover .exit, .exit:focus-visible { opacity: 1; }
+
+      .mode-bar {
+        height: 52px; padding: 0 18px; display: flex; align-items: center;
+        justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line);
+        background: var(--bg); position: relative; z-index: 6;
+      }
+      .mode-brand { font-size: 12px; font-weight: 600; letter-spacing: -0.03em; color: var(--muted); }
+      .mode-switch { display: flex; gap: 3px; padding: 3px; border: 1px solid var(--line); border-radius: 9px; }
+      .mode-switch button { appearance: none; background: transparent; border: 0; border-radius: 6px; color: var(--muted); font: inherit; font-size: 12px; padding: 5px 13px; cursor: pointer; }
+      .mode-switch button[aria-pressed="true"] { background: var(--hover); color: var(--fg); }
+      .mode-switch button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+      .mode-switch button:disabled { cursor: wait; }
+      #vibeRoot { position: absolute; inset: 52px 0 0; overflow: auto; }
+      .vibe-save-status { position: fixed; bottom: 12px; left: 12px; right: 12px; z-index: 8; padding: 12px; background: var(--bg); color: var(--fg); border: 1px solid var(--accent); border-radius: 8px; font-size: 12px; }
+      .vibe-save-status button { color: var(--fg); background: var(--hover); border: 1px solid var(--line); border-radius: 4px; padding: 4px 8px; margin-left: 8px; font: inherit; cursor: pointer; }
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation: none !important; transition: none !important; }
+      }
     </style>
   </head>
   <body>
+    <nav class="mode-bar" aria-label="Meanwhile modes">
+      <span class="mode-brand">meanwhile</span>
+      <div class="mode-switch" role="group" aria-label="Choose a mode">
+        <button type="button" data-mode="work" aria-pressed="true" disabled>Work</button>
+        <button type="button" data-mode="vibe" aria-pressed="false" disabled>Vibe</button>
+      </div>
+    </nav>
     <div class="stage" id="stage">
       <div class="top" id="top">
         <div class="header" id="header"></div>
@@ -200,7 +227,15 @@
       <button class="exit" type="button" id="exitTheater">Esc · back</button>
     </div>
 
+    <section id="vibeRoot" aria-label="Vibe web activities" hidden></section>
+    <div id="vibeSaveStatus" class="vibe-save-status" role="status" hidden>
+      <span id="vibeSaveText"></span><button id="vibeSaveRetry" type="button">Retry save</button>
+    </div>
+
     <script src="{{VIEW_MODEL}}"></script>
+    <script src="{{VIBE_MODEL}}"></script>
+    <script src="{{VIBE_UI}}"></script>
+    <script src="{{VIBE_BRIDGE}}"></script>
     <script>
       const vscode = acquireVsCodeApi();
       const $ = (id) => document.getElementById(id);
@@ -227,6 +262,20 @@
       let questionKey = null;
       let hi = -1;
       let picking = null;
+      let activeMode = "work";
+      const modes = MeanwhileModes.mount({
+        vscode,
+        onModeChange(mode) {
+          activeMode = mode;
+          if (mode === "vibe") {
+            stopVideo();
+            voice.pause();
+            if (theater) vscode.postMessage({ type: "exitTheater" });
+          } else {
+            render();
+          }
+        },
+      });
 
       function on(node, yes) { node.classList.toggle("is-on", !!yes); }
       function esc(s) {
@@ -333,6 +382,8 @@
       function render() {
         if (!last) return;
         const session = last.session;
+        modes.setSession(session);
+        if (activeMode === "vibe") return;
         if (session?.id !== watch.sessionId) {
           Object.assign(watch, { pinnedVideoId: null, minClip: 0, engaged: false, sessionId: session?.id ?? null });
           brokenIds = new Set();
@@ -387,6 +438,10 @@
           }
           return;
         }
+        // Cursor forwards host messages from its outer, same-origin webview.
+        // The localhost/YouTube child frames cannot initialize or save Vibe.
+        if (event.origin !== window.location.origin) return;
+        modes.receive(data);
         if (data.type === "state") {
           playerBase = data.payload.playerBase || null;
           last = { ...data.payload, skew: Date.now() - data.payload.now };
@@ -395,9 +450,9 @@
           theater = !!data.on;
           render();
         } else if (data.type === "focusQuestion") {
-          if (choiceButtons().length && !picking) highlight(0);
+          if (activeMode === "work" && choiceButtons().length && !picking) highlight(0);
         } else if (data.type === "cycleChoice") {
-          if (choiceButtons().length && !picking) highlight(hi + 1);
+          if (activeMode === "work" && choiceButtons().length && !picking) highlight(hi + 1);
         }
       });
 
@@ -409,6 +464,7 @@
       $("exitTheater").addEventListener("click", leaveTheater);
 
       document.addEventListener("keydown", (e) => {
+        if (activeMode === "vibe") return;
         if (e.key === "Escape" && theater) {
           e.preventDefault();
           leaveTheater();
