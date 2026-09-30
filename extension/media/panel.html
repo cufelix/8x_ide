@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="{{CSP}}" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Meanwhile</title>
+    <style>
+      :root {
+        --bg: #000000;
+        --fg: #e4e4e4;
+        --text: rgba(228, 228, 228, 0.92);
+        --text-2: rgba(228, 228, 228, 0.55);
+        --text-3: rgba(228, 228, 228, 0.37);
+        --wash: rgba(228, 228, 228, 0.04);
+        --border: rgba(228, 228, 228, 0.1);
+        --hover: rgba(228, 228, 228, 0.08);
+        --font: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui,
+          sans-serif;
+        --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--font);
+        font-size: 13px;
+        line-height: 1.45;
+        -webkit-font-smoothing: antialiased;
+        overflow: hidden;
+      }
+
+      /* Empty default: black + soft grey gradient only */
+      .stage {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        background:
+          radial-gradient(
+            ellipse 80% 60% at 50% 35%,
+            rgba(80, 80, 80, 0.28) 0%,
+            rgba(30, 30, 30, 0.12) 45%,
+            transparent 70%
+          ),
+          linear-gradient(180deg, #0a0a0a 0%, #000 55%, #050505 100%);
+      }
+
+      /* Floating content blocks — appear only when present */
+      .layer {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 28px;
+        gap: 16px;
+      }
+
+      .layer > * {
+        pointer-events: auto;
+        max-width: 420px;
+        width: 100%;
+        animation: rise 420ms ease-out both;
+      }
+
+      @keyframes rise {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* Hidden until content arrives */
+      .block {
+        display: none;
+      }
+
+      .block.is-on {
+        display: block;
+      }
+
+      .video {
+        aspect-ratio: 16 / 9;
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: rgba(0, 0, 0, 0.55);
+        overflow: hidden;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+      }
+
+      .video iframe,
+      .video .ph {
+        width: 100%;
+        height: 100%;
+        border: 0;
+        display: grid;
+        place-items: center;
+        color: var(--text-3);
+        font-size: 12px;
+        background: rgba(255, 255, 255, 0.02);
+      }
+
+      .video .ph strong {
+        display: block;
+        color: var(--text-2);
+        font-weight: 500;
+        margin-bottom: 4px;
+      }
+
+      .card {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: rgba(12, 12, 12, 0.82);
+        backdrop-filter: blur(12px);
+        padding: 16px 16px 14px;
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+      }
+
+      .card .kicker {
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--text-3);
+        margin-bottom: 8px;
+      }
+
+      .card h2 {
+        margin: 0 0 8px;
+        font-size: 15px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        color: var(--text);
+      }
+
+      .card p {
+        margin: 0 0 14px;
+        color: var(--text-2);
+        font-size: 13px;
+      }
+
+      .choices {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .choice {
+        text-align: left;
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        background: transparent;
+        color: var(--text);
+        font: inherit;
+        cursor: pointer;
+      }
+
+      .choice:hover {
+        background: var(--hover);
+        border-color: rgba(228, 228, 228, 0.2);
+      }
+
+      /* Tiny corner mark — barely there */
+      .mark {
+        position: absolute;
+        left: 14px;
+        bottom: 12px;
+        font-size: 11px;
+        letter-spacing: 0.04em;
+        color: var(--text-3);
+        opacity: 0.55;
+        user-select: none;
+      }
+
+      /* Demo controls (preview only) — remove later */
+      .demo {
+        position: absolute;
+        right: 12px;
+        bottom: 10px;
+        display: flex;
+        gap: 6px;
+        opacity: 0.35;
+      }
+
+      .demo:hover {
+        opacity: 0.9;
+      }
+
+      .demo button {
+        border: 1px solid var(--border);
+        background: rgba(0, 0, 0, 0.5);
+        color: var(--text-2);
+        font: inherit;
+        font-size: 10px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        padding: 5px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+
+      .demo button:hover {
+        color: var(--text);
+        border-color: rgba(228, 228, 228, 0.22);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="stage">
+      <div class="layer">
+        <div id="video" class="block video">
+          <div class="ph">
+            <strong>Stripe vs Lemon Squeezy</strong>
+            comparison · 6:12
+          </div>
+        </div>
+
+        <div id="question" class="block card">
+          <div class="kicker">Meanwhile asks</div>
+          <h2>Only you can decide</h2>
+          <p>
+            While the agent wires Stripe, pick the constraint it cannot infer
+            from the repo alone.
+          </p>
+          <div class="choices">
+            <button class="choice" type="button">
+              Ship the thinnest vertical slice
+            </button>
+            <button class="choice" type="button">
+              Preserve existing behavior even if slower
+            </button>
+            <button class="choice" type="button">
+              Prefer clean internals; polish later
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="mark">Meanwhile</div>
+
+      <div class="demo" title="Preview toggles — not shipping UI">
+        <button type="button" data-show="none">Empty</button>
+        <button type="button" data-show="video">Video</button>
+        <button type="button" data-show="question">Ask</button>
+        <button type="button" data-show="both">Both</button>
+      </div>
+    </div>
+
+    <script>
+      const video = document.getElementById("video");
+      const question = document.getElementById("question");
+
+      function show(mode) {
+        video.classList.toggle("is-on", mode === "video" || mode === "both");
+        question.classList.toggle(
+          "is-on",
+          mode === "question" || mode === "both"
+        );
+      }
+
+      // Default: empty black + gradient. Nothing else.
+      show("none");
+
+      document.querySelectorAll(".demo button").forEach((btn) => {
+        btn.addEventListener("click", () => show(btn.dataset.show));
+      });
+    </script>
+  </body>
+</html>

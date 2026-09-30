@@ -1,1 +1,3 @@
 .remember/
+*.vsix
+.cursor/hooks/state/
