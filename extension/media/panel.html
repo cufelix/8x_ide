@@ -7,18 +7,8 @@
     <title>Meanwhile</title>
     <link rel="stylesheet" href="{{VIBE_CSS}}" />
     <style>
-      /* Colors come from the IDE theme; fallbacks keep the black stage outside Cursor. */
+      /* Shared colors and typography are defined in panel.css below. */
       :root {
-        --bg: var(--vscode-editor-background, #000);
-        --fg: var(--vscode-editor-foreground, #e8e8e8);
-        --muted: var(--vscode-descriptionForeground, rgba(232, 232, 232, 0.55));
-        --faint: color-mix(in srgb, var(--fg) 32%, transparent);
-        --line: var(--vscode-widget-border, color-mix(in srgb, var(--fg) 10%, transparent));
-        --accent: var(--vscode-focusBorder, #3794ff);
-        --hover: var(--vscode-list-hoverBackground, color-mix(in srgb, var(--fg) 6%, transparent));
-        --pick-bg: var(--vscode-list-activeSelectionBackground, color-mix(in srgb, var(--accent) 22%, transparent));
-        --pick-fg: var(--vscode-list-activeSelectionForeground, var(--fg));
-        --font: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif);
         --pad: clamp(16px, 4vw, 28px);
         --col: min(100%, 380px);
       }
@@ -250,13 +240,20 @@
         *, *::before, *::after { animation: none !important; transition: none !important; }
       }
     </style>
+    <link rel="stylesheet" href="{{PANEL_CSS}}" />
   </head>
   <body>
     <nav class="mode-bar" aria-label="Meanwhile modes">
-      <span class="mode-brand">meanwhile</span>
-      <div class="mode-switch" role="group" aria-label="Choose a mode">
-        <button type="button" data-mode="work" aria-pressed="true" disabled>Work</button>
-        <button type="button" data-mode="vibe" aria-pressed="false" disabled>Vibe</button>
+      <span class="mode-brand" aria-label="Meanwhile"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h5v10H4zM15 7h5v10h-5z" fill="currentColor"/></svg><span class="mode-brand-name">meanwhile</span></span>
+      <div class="mode-actions">
+        <div class="mode-switch" role="group" aria-label="Choose a mode">
+          <button type="button" data-mode="work" aria-pressed="true" disabled>Work</button>
+          <button type="button" data-mode="vibe" aria-pressed="false" disabled>Vibe</button>
+        </div>
+        <button id="themeToggle" class="theme-toggle" type="button" aria-label="Switch theme" disabled>
+          <svg class="theme-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg>
+          <svg class="theme-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.7 13.1A8.8 8.8 0 0 1 10.9 3.3 8.8 8.8 0 1 0 20.7 13.1Z"/></svg>
+        </button>
       </div>
     </nav>
     <div class="stage" id="stage">
@@ -311,6 +308,7 @@
     <script src="{{VIEW_MODEL}}"></script>
     <script src="{{VIBE_MODEL}}"></script>
     <script src="{{VIBE_UI}}"></script>
+    <script src="{{PANEL_THEME}}"></script>
     <script src="{{VIBE_BRIDGE}}"></script>
     <script>
       const vscode = acquireVsCodeApi();

@@ -383,6 +383,7 @@ function getHtml(webview, extensionPath) {
     `script-src ${webview.cspSource} 'unsafe-inline'`,
     `img-src ${webview.cspSource} https://i.ytimg.com data:`,
     `media-src ${webview.cspSource}`,
+    `font-src ${webview.cspSource}`,
     `frame-src ${frames}`,
   ].join("; ");
   const assets = {
@@ -391,8 +392,10 @@ function getHtml(webview, extensionPath) {
     VIBE_UI: webview.asWebviewUri(vscode.Uri.file(path.join(media, "vibe-ui.js"))),
     VIBE_BRIDGE: webview.asWebviewUri(vscode.Uri.file(path.join(media, "vibe-bridge.js"))),
     VIBE_CSS: webview.asWebviewUri(vscode.Uri.file(path.join(media, "vibe.css"))),
+    PANEL_CSS: webview.asWebviewUri(vscode.Uri.file(path.join(media, "panel.css"))),
+    PANEL_THEME: webview.asWebviewUri(vscode.Uri.file(path.join(media, "panel-theme.js"))),
   };
-  return html.replace(/\{\{CSP\}\}/g, csp).replace(/\{\{(VIEW_MODEL|VIBE_MODEL|VIBE_UI|VIBE_BRIDGE|VIBE_CSS)\}\}/g, (_, key) => assets[key].toString());
+  return html.replace(/\{\{CSP\}\}/g, csp).replace(/\{\{(VIEW_MODEL|VIBE_MODEL|VIBE_UI|VIBE_BRIDGE|VIBE_CSS|PANEL_CSS|PANEL_THEME)\}\}/g, (_, key) => assets[key].toString());
 }
 
 function deactivate() {
