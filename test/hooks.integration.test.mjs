@@ -162,6 +162,64 @@ test("our own follow-up message does not start a new run", () => {
   assert.equal(session().id, id);
 });
 
+test("live feed, explanation and schema from real hook payloads", async () => {
+  const gen = "7c507a65-e702-41fb-903c-3468ebd69693";
+  hook("before-submit-prompt.mjs", { conversation_id: "chat", generation_id: gen, prompt: "Add Stripe checkout to this Next.js site" });
+  // Tool and edit hooks of the same turn arrive under another conversation id.
+  const tool = { conversation_id: "tool-side", generation_id: gen };
+
+  hook("after-agent-thought.mjs", { conversation_id: "chat", generation_id: `${gen}-3-oncl`, text: "Let me look at how the app router is set up." });
+  const shell = { ...tool, tool_name: "Shell", tool_input: { command: "npm ls stripe" }, tool_output: '{"exitCode":0}', tool_use_id: "u1" };
+  await Promise.all([hookAsync("post-tool-use.mjs", shell), hookAsync("post-tool-use.mjs", shell)]);
+  hook("post-tool-use.mjs", { ...tool, tool_name: "Read", tool_input: { path: join(project, "app/page.tsx") }, tool_use_id: "u2" });
+
+  const { mkdirSync } = await import("node:fs");
+  mkdirSync(join(project, "app/api/checkout"), { recursive: true });
+  mkdirSync(join(project, "lib"), { recursive: true });
+  writeFileSync(join(project, "lib/stripe.ts"), 'import Stripe from "stripe";\nexport const stripe = new Stripe("");\n');
+  writeFileSync(
+    join(project, "app/api/checkout/route.ts"),
+    'import { stripe } from "@/lib/stripe";\nimport { NextResponse } from "next/server";\nexport async function POST() { return NextResponse.json({}); }\n'
+  );
+  hook("after-file-edit.mjs", { ...tool, file_path: join(project, "lib/stripe.ts"), edits: [{ old_string: "", new_string: "stripe" }] });
+  const edit = { ...tool, file_path: join(project, "app/api/checkout/route.ts"), edits: [{ old_string: "", new_string: "route" }] };
+  await Promise.all([hookAsync("after-file-edit.mjs", edit), hookAsync("after-file-edit.mjs", edit)]);
+
+  const s = session();
+  assert.deepEqual(s.source.aliases, ["tool-side"]);
+  assert.deepEqual(
+    s.feed.map((e) => `${e.label} ${e.detail}`),
+    [
+      "Created app/api/checkout/route.ts",
+      "Created lib/stripe.ts",
+      "Read app/page.tsx",
+      "Ran npm ls stripe",
+      "Thinking looking at how the app router is set up",
+      "Task Add Stripe checkout to this Next.js site",
+    ],
+    "each event once, newest first"
+  );
+  assert.equal(s.explain.length, 2);
+  assert.equal(s.explain[0].path, "app/api/checkout/route.ts");
+  assert.match(s.explain[0].text, /defines `POST`; uses next; imports 1 local module/);
+  assert.equal(s.explain[0].status, "done", "no key: the code-derived line is final");
+  const byId = Object.fromEntries(s.schema.nodes.map((n) => [n.id, n]));
+  assert.equal(byId["app/api/checkout/route.ts"].layer, 0);
+  assert.equal(byId["lib/stripe.ts"].layer, 1);
+  assert.ok(byId["pkg:stripe"] && byId["pkg:next"]);
+  assert.ok(s.schema.edges.some((e) => e.from === "app/api/checkout/route.ts" && e.to === "lib/stripe.ts"));
+  assert.deepEqual(s.code["app/api/checkout/route.ts"].resolved, { "@/lib/stripe": "lib/stripe.ts" });
+
+  hook("post-tool-use.mjs", { conversation_id: "someone-else", generation_id: "other", tool_name: "Shell", tool_input: { command: "rm -rf" }, tool_use_id: "x" });
+  assert.equal(session().feed.length, 6, "other chats never reach the feed");
+
+  // A whole-file rewrite arrives with an empty old_string; a file the agent read is not new.
+  writeFileSync(join(project, "app/page.tsx"), "export default function Page() {}\n");
+  hook("after-file-edit.mjs", { ...tool, file_path: join(project, "app/page.tsx"), edits: [{ old_string: "", new_string: "page" }] });
+  assert.equal(session().feed[0].label, "Edited");
+  assert.equal(session().files.find((f) => f.path === "app/page.tsx").isNew, false);
+});
+
 test("/meanwhile commands and empty prompts do not start a run", () => {
   hook("before-submit-prompt.mjs", { conversation_id: "c3", prompt: "/meanwhile status" });
   assert.notEqual(session().source.conversationId, "c3");

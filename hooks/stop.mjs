@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { conversationIdFrom, parseStdin } from "./hook-io.mjs";
+import { identityFrom, parseStdin } from "./hook-io.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 let out = {};
@@ -12,7 +12,7 @@ try {
   );
   const input = await parseStdin();
   out = onCodingAgentStop({
-    conversationId: conversationIdFrom(input),
+    ...identityFrom(input),
     status: input.status || "completed",
     loopCount: Number(input.loop_count) || 0,
   });

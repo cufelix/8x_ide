@@ -72,10 +72,12 @@
         position: absolute;
         inset: 64px var(--pad) 44px;
         display: grid;
-        place-items: center;
+        place-items: start center;
         overflow: auto;
+        scrollbar-width: thin;
       }
-      .column { width: var(--col); display: flex; flex-direction: column; gap: 22px; }
+      .column { width: var(--col); display: flex; flex-direction: column; gap: 22px; padding: 6px 0 24px; }
+      .main, .side { display: contents; }
       .block { display: none; animation: in 320ms ease-out both; }
       .block.is-on { display: block; }
       @keyframes in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
@@ -124,6 +126,59 @@
       .set { display: flex; gap: 8px; align-items: baseline; color: var(--muted); font-size: 12px; }
       .set b { color: var(--fg); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+      /* Live explanation */
+      .kicker .dot {
+        display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 7px; vertical-align: 1px;
+        background: var(--accent); animation: pulse 1.6s ease-in-out infinite;
+      }
+      .phase-stopped .kicker .dot { display: none; }
+      .mono { font-family: var(--vscode-editor-font-family, ui-monospace, "SF Mono", Menlo, monospace); font-size: 11px; }
+      .ex-path { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); margin-bottom: 4px; }
+      .ex-path span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .ex-text { font-size: 13.5px; line-height: 1.55; }
+      .ex-text code { font-family: var(--vscode-editor-font-family, ui-monospace, monospace); font-size: 12px; color: var(--fg); background: var(--hover); padding: 0 4px; border-radius: 3px; }
+      .ex-reading { margin-top: 6px; color: var(--faint); font-size: 11px; }
+      .ex-reading::after { content: "…"; animation: pulse 1.2s ease-in-out infinite; }
+      .ex-concept { margin-top: 8px; display: inline-flex; gap: 6px; align-items: center; font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 1px 9px; }
+      .ex-past { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+      .ex-past li { padding-left: 10px; border-left: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+      .ex-past .mono { display: block; color: var(--faint); }
+      .ex-fresh { animation: in 320ms ease-out both; }
+
+      /* Schema */
+      .schema { width: 100%; display: block; overflow: visible; }
+      .schema .edge { fill: none; stroke: var(--faint); stroke-width: 1; }
+      .schema .edge.to-active { stroke: var(--accent); }
+      .schema .node rect { fill: color-mix(in srgb, var(--fg) 5%, var(--bg)); stroke: var(--line); stroke-width: 1; rx: 5; }
+      .schema .node.pkg rect { fill: transparent; stroke-dasharray: 3 3; }
+      .schema .node.active rect { stroke: var(--accent); fill: color-mix(in srgb, var(--accent) 16%, var(--bg)); }
+      .schema .node text { fill: var(--fg); font-size: 11px; font-family: var(--vscode-editor-font-family, ui-monospace, monospace); dominant-baseline: central; text-anchor: middle; }
+      .schema .node.pkg text { fill: var(--muted); }
+      .schema .node.ctx rect { fill: transparent; }
+      .schema .node.ctx text { fill: var(--muted); }
+      .schema .node .new { fill: var(--accent); }
+      .legend { margin-top: 6px; color: var(--faint); font-size: 10px; display: flex; gap: 12px; }
+
+      /* Live feed */
+      .feed { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+      .feed li { display: grid; grid-template-columns: 34px 1fr auto; gap: 8px; align-items: baseline; padding: 3px 0; font-size: 12px; }
+      .feed .ago { color: var(--faint); font-size: 10px; font-variant-numeric: tabular-nums; text-align: right; }
+      .feed .what { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); }
+      .feed .what b { font-weight: 500; color: var(--fg); margin-right: 5px; }
+      .feed .k-think .what { font-style: italic; }
+      .feed .k-think .what b { font-style: normal; color: var(--muted); }
+      .feed .k-edit .what b { color: var(--accent); }
+      .feed .st { color: var(--faint); font-size: 10px; font-variant-numeric: tabular-nums; }
+      .feed .st.bad { color: var(--vscode-errorForeground, #f48771); }
+      .feed li.fresh { animation: in 320ms ease-out both; }
+      .feed li.fresh .what { color: var(--fg); }
+
+      /* Wide half-tab: explanation + video on the left, map + feed on the right. */
+      @container (min-width: 760px) {
+        .column { width: min(100%, 860px); display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); column-gap: 32px; align-items: start; }
+        .main, .side { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+      }
+
       /* Agent stopped */
       .summary { font-size: 14px; }
       .summary + button { margin-top: 10px; }
@@ -150,7 +205,8 @@
       /* Narrow: you are working with the agent. Keep only what matters. */
       @container (max-width: 380px) {
         :root { --pad: 14px; }
-        .upnext, .hint, .card p, .activity { display: none; }
+        .upnext, .hint, .card p, .activity, .ex-past, .legend { display: none; }
+        .feed li:nth-child(n + 6) { display: none; }
         .focus { inset: 44px var(--pad) 36px; }
         .column { gap: 14px; }
         .card h2 { font-size: 13px; }
@@ -160,7 +216,9 @@
 
       /* Theater: the video takes the whole window. */
       .theater .top, .theater .caption, .theater .upnext, .theater .card, .theater #stopped, .theater .mark { opacity: 0; pointer-events: none; }
-      .theater .card, .theater #stopped { display: none; }
+      .theater .card, .theater #stopped, .theater #explainBlock, .theater #schemaBlock, .theater #feedBlock, .theater .side { display: none !important; }
+      .theater .focus { place-items: center; }
+      .theater .column, .theater .main { display: flex; flex-direction: column; width: 100%; height: 100%; padding: 0; justify-content: center; align-items: center; }
       .theater .focus { inset: 0; }
       .theater .column { width: 100%; height: 100%; justify-content: center; align-items: center; }
       .theater #videoBlock { width: min(100%, calc(100vh * 16 / 9)); }
@@ -210,15 +268,33 @@
 
       <div class="focus">
         <div class="column">
-          <div class="block" id="videoBlock">
-            <div class="frame" id="frame"></div>
-            <div class="caption"><span class="title" id="vTitle"></span><span class="len" id="vLen"></span></div>
-            <div class="upnext" id="upNext"></div>
+          <div class="main">
+            <div class="block" id="stopped">
+              <div class="summary" id="summary"></div>
+              <button class="ghost" type="button" id="openDiff">Open the diff</button>
+            </div>
+            <section class="block" id="explainBlock" aria-live="polite">
+              <div class="kicker"><span class="dot"></span><span id="explainKicker">What the code does</span></div>
+              <div id="explainNow"></div>
+              <ol class="ex-past" id="explainPast"></ol>
+            </section>
+            <div class="block card" id="card"></div>
+            <div class="block" id="videoBlock">
+              <div class="frame" id="frame"></div>
+              <div class="caption"><span class="title" id="vTitle"></span><span class="len" id="vLen"></span></div>
+              <div class="upnext" id="upNext"></div>
+            </div>
           </div>
-          <div class="block card" id="card"></div>
-          <div class="block" id="stopped">
-            <div class="summary" id="summary"></div>
-            <button class="ghost" type="button" id="openDiff">Open the diff</button>
+          <div class="side">
+            <section class="block" id="schemaBlock">
+              <div class="kicker">How it connects</div>
+              <svg class="schema" id="schema" role="img" aria-label="Files the agent touched and what they import"></svg>
+              <div class="legend"><span>▢ changed</span><span>faded · used, unchanged</span><span>┄ package</span><span>● new</span></div>
+            </section>
+            <section class="block" id="feedBlock">
+              <div class="kicker"><span class="dot"></span>Live · what the agent does</div>
+              <ol class="feed" id="feed"></ol>
+            </section>
           </div>
         </div>
       </div>
@@ -243,6 +319,8 @@
         stage: $("stage"), top: $("top"), header: $("header"), activity: $("activity"), bar: $("bar"),
         videoBlock: $("videoBlock"), frame: $("frame"), vTitle: $("vTitle"), vLen: $("vLen"), upNext: $("upNext"),
         card: $("card"), stopped: $("stopped"), summary: $("summary"),
+        explainBlock: $("explainBlock"), explainNow: $("explainNow"), explainPast: $("explainPast"), explainKicker: $("explainKicker"),
+        schemaBlock: $("schemaBlock"), schema: $("schema"), feedBlock: $("feedBlock"), feed: $("feed"),
       };
       const voice = new Audio();
 
@@ -310,9 +388,10 @@
         on(el.videoBlock, !!video);
         if (!video) { stopVideo(); return; }
         el.vTitle.textContent = video.title || "";
+        el.vTitle.title = video.why ? `Picked because the agent is working on ${video.why}` : video.title || "";
         el.vLen.textContent = video.lengthLabel || "";
         el.upNext.innerHTML = upNext
-          ? `<span class="title">Up next · ${esc(upNext.title)}</span><span class="len">${esc(upNext.lengthLabel || "")}</span>`
+          ? `<span class="title" title="${esc(upNext.why ? `Picked because the agent is working on ${upNext.why}` : upNext.title)}">Up next · ${upNext.why ? `<b>${esc(upNext.why)}</b> · ` : ""}${esc(upNext.title)}</span><span class="len">${esc(upNext.lengthLabel || "")}</span>`
           : "";
         if (video.videoId === loadedVideoId) return;
         loadedVideoId = video.videoId;
@@ -359,6 +438,125 @@
         el.card.querySelectorAll(".choice").forEach((btn) => btn.addEventListener("click", () => pick(btn.dataset.id)));
       }
 
+      /** Escaped text with `code` spans. */
+      function rich(s) {
+        return esc(s).replace(/`([^`]+)`/g, "<code>$1</code>");
+      }
+
+      let explainKey = null;
+      let shownExplainIds = new Set();
+      function renderExplain(list, phase) {
+        on(el.explainBlock, list.length > 0);
+        el.explainKicker.textContent = phase === "stopped" ? "What changed" : "What the code does";
+        const key = JSON.stringify(list.map((e) => [e.id, e.text, e.pending, e.concept, e.ago]));
+        if (key === explainKey) return;
+        explainKey = key;
+        if (!list.length) { el.explainNow.innerHTML = ""; el.explainPast.innerHTML = ""; return; }
+        const [now, ...past] = list;
+        const fresh = !shownExplainIds.has(`${now.id}:${now.pending}`);
+        shownExplainIds.add(`${now.id}:${now.pending}`);
+        el.explainNow.innerHTML = `
+          <div class="${fresh ? "ex-fresh" : ""}">
+            <div class="ex-path mono"><span title="${esc(now.path)}">${esc(now.path)}</span><span>${esc(now.ago)}</span></div>
+            <div class="ex-text">${rich(now.text)}</div>
+            ${now.pending ? `<div class="ex-reading">Reading the change</div>` : ""}
+            ${now.concept ? `<div class="ex-concept">▶ ${esc(now.concept)}</div>` : ""}
+          </div>`;
+        el.explainPast.innerHTML = past
+          .map((e) => `<li><span class="mono">${esc(e.path)} · ${esc(e.ago)}</span>${rich(e.text)}</li>`)
+          .join("");
+      }
+
+      let seenFeed = new Set();
+      let feedKey = null;
+      function renderFeed(items) {
+        on(el.feedBlock, items.length > 0);
+        const key = JSON.stringify(items.map((i) => [i.key, i.ago]));
+        if (key === feedKey) return;
+        feedKey = key;
+        const first = seenFeed.size === 0;
+        el.feed.innerHTML = items
+          .map((i) => {
+            const fresh = !first && !seenFeed.has(i.key);
+            const bad = i.status && /^exit/.test(i.status);
+            return `<li class="k-${esc(i.kind)}${fresh ? " fresh" : ""}">
+              <span class="ago">${esc(i.ago)}</span>
+              <span class="what" title="${esc(`${i.label} ${i.detail}`)}"><b>${esc(i.label)}</b>${esc(i.detail)}</span>
+              <span class="st${bad ? " bad" : ""}">${esc(i.status || "")}</span>
+            </li>`;
+          })
+          .join("");
+        items.forEach((i) => seenFeed.add(i.key));
+      }
+
+      const NODE_H = 26;
+      const ROW_GAP = 30;
+      let schemaKey = null;
+      /** Layered diagram: rows by dependency depth, packages in the last row. */
+      function renderSchema(schema) {
+        on(el.schemaBlock, !!schema && schema.nodes.length > 0);
+        if (!schema) { schemaKey = null; el.schema.innerHTML = ""; return; }
+        const width = Math.max(220, Math.round(el.schemaBlock.clientWidth || 360));
+        const key = JSON.stringify([width, schema]);
+        if (key === schemaKey) return;
+        schemaKey = key;
+
+        const perRow = Math.max(2, Math.floor(width / 118));
+        const layers = [...new Set(schema.nodes.map((n) => n.layer))].sort((a, b) => a - b);
+        const rows = [];
+        for (const layer of layers) {
+          const inLayer = schema.nodes.filter((n) => n.layer === layer);
+          for (let i = 0; i < inLayer.length; i += perRow) rows.push(inLayer.slice(i, i + perRow));
+        }
+        const pos = new Map();
+        rows.forEach((row, r) => {
+          const slot = width / row.length;
+          row.forEach((n, c) => {
+            const maxW = Math.min(slot - 10, 200);
+            const chars = Math.max(4, Math.floor((maxW - 16) / 6.6));
+            const text = n.label.length > chars ? `${n.label.slice(0, chars - 1)}…` : n.label;
+            const w = Math.min(maxW, text.length * 6.6 + 18 + (n.isNew ? 10 : 0));
+            pos.set(n.id, { x: slot * c + slot / 2, y: r * (NODE_H + ROW_GAP) + NODE_H / 2 + 1, w, text, n });
+          });
+        });
+        const height = rows.length * (NODE_H + ROW_GAP) - ROW_GAP + 2;
+        const active = schema.nodes.find((n) => n.active)?.id;
+        const edges = schema.edges
+          .map((e) => {
+            const a = pos.get(e.from);
+            const b = pos.get(e.to);
+            if (!a || !b) return "";
+            const down = b.y >= a.y;
+            const y1 = a.y + (down ? NODE_H / 2 : -NODE_H / 2);
+            const y2 = b.y + (down ? -NODE_H / 2 : NODE_H / 2);
+            const mid = (y1 + y2) / 2;
+            const hot = e.from === active || e.to === active;
+            return `<path class="edge${hot ? " to-active" : ""}" d="M${a.x},${y1} C${a.x},${mid} ${b.x},${mid} ${b.x},${y2}" marker-end="url(#arrow${hot ? "Hot" : ""})"><title>${esc(e.from)} → ${esc(e.to.replace(/^pkg:/, ""))}</title></path>`;
+          })
+          .join("");
+        const nodes = [...pos.values()]
+          .map(({ x, y, w, text, n }) => {
+            const cls = `node${n.kind === "package" ? " pkg" : n.kind === "context" ? " ctx" : ""}${n.active ? " active" : ""}`;
+            const tip =
+              n.kind === "package" ? `package ${n.label}`
+              : n.kind === "context" ? `${n.id} — used, not changed`
+              : `${n.id}${n.exports?.length ? ` — exports ${n.exports.join(", ")}` : ""}`;
+            return `<g class="${cls}" transform="translate(${x - w / 2},${y - NODE_H / 2})">
+              <title>${esc(tip)}</title>
+              <rect width="${w}" height="${NODE_H}"></rect>
+              ${n.isNew ? `<circle class="new" cx="9" cy="${NODE_H / 2}" r="2.5"></circle>` : ""}
+              <text x="${w / 2 + (n.isNew ? 4 : 0)}" y="${NODE_H / 2}">${esc(text)}</text>
+            </g>`;
+          })
+          .join("");
+        el.schema.setAttribute("viewBox", `0 0 ${width} ${height}`);
+        el.schema.setAttribute("height", String(height));
+        el.schema.innerHTML = `<defs>
+            <marker id="arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--faint)"/></marker>
+            <marker id="arrowHot" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--accent)"/></marker>
+          </defs>${edges}${nodes}`;
+      }
+
       function choiceButtons() { return [...el.card.querySelectorAll(".choice")]; }
 
       function highlight(i) {
@@ -387,6 +585,8 @@
         if (session?.id !== watch.sessionId) {
           Object.assign(watch, { pinnedVideoId: null, minClip: 0, engaged: false, sessionId: session?.id ?? null });
           brokenIds = new Set();
+          seenFeed = new Set();
+          shownExplainIds = new Set();
         }
         const view = MeanwhileView.buildView(session, Date.now() - (last.skew || 0), watch);
         el.stage.className = `stage phase-${view.phase}${theater && view.video ? " theater" : ""}`;
@@ -400,6 +600,9 @@
         renderVideo(view.phase === "running" ? view.video : null, view.upNext);
         if (view.video) watch.minClip = Math.max(watch.minClip, view.video.index);
         renderQuestion(view.question);
+        renderExplain(view.explain || [], view.phase);
+        renderSchema(view.schema);
+        renderFeed(view.phase === "running" ? view.feed || [] : []);
 
         on(el.stopped, view.phase === "stopped");
         el.summary.textContent = view.summary || "";

@@ -237,11 +237,11 @@ export function parseResultsPage(html, query, limit = 3) {
 /**
  * Network research. Returns [] when every tier comes back empty; callers keep
  * the curated clips they already have.
- * @param {{ stack: string[], prompt?: string }} input
+ * @param {{ stack?: string[], prompt?: string, queries?: string[] }} input
  */
-export async function researchVideos({ stack, prompt = "" }) {
+export async function researchVideos({ stack = [], prompt = "", queries: given }) {
   const apiKey = (process.env.YOUTUBE_API_KEY || "").trim();
-  const queries = buildQueries(stack, prompt);
+  const queries = given?.length ? given : buildQueries(stack, prompt);
   if (apiKey) {
     const batches = await Promise.all(queries.map((q) => searchYouTubeApi(q, apiKey).catch(() => [])));
     if (batches.flat().length) return dedupe(batches.flat());

@@ -8,6 +8,8 @@ const vibeModel = require("./media/vibe-model");
 const { initialState: normalizeVibe } = vibeModel;
 
 const STEP_ASIDE_MS = 5000;
+/** "What changed" stays up long enough to be read before the panel steps aside. */
+const READ_MS_PER_EXPLANATION = 4000;
 const VIBE_KEY = "meanwhile.vibe.browser.v1";
 const MODE_KEY = "meanwhile.mode.v1";
 
@@ -134,7 +136,7 @@ function scheduleStepAside(session) {
       console.error("[meanwhile] open scm:", err);
     }
     panel?.dispose();
-  }, STEP_ASIDE_MS);
+  }, STEP_ASIDE_MS + Math.min(4, (session.explain || []).length) * READ_MS_PER_EXPLANATION);
 }
 
 function applyAnswer(choiceId) {

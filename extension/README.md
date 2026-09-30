@@ -37,10 +37,10 @@ OpenRouter and ElevenLabs are optional existing Work integrations. Their keys be
 ```bash
 cd extension
 npx @vscode/vsce package --allow-missing-repository --skip-license
-cursor --install-extension ./meanwhile-0.4.0.vsix --force
+cursor --install-extension ./meanwhile-0.5.0.vsix --force
 ```
 
-Reload the Cursor window.
+Reload the Cursor window. If an older build keeps loading, remove `~/.cursor/extensions/meanwhile.meanwhile-*` first.
 
 ## What Work shows
 
@@ -48,8 +48,14 @@ Reload the Cursor window.
 | --- | --- |
 | No run | Empty stage, corner mark |
 | Agent running | `Meanwhile · ~6–10 min · Stripe · Next.js`, one activity line, the clip that fits the wait with an **Up next** line, and at most one question |
+| Agent reads, searches, runs, edits | **Live** feed, newest first: `Read app/page.tsx`, `Ran npm test · exit 1`, `Edited lib/db.ts +4 −1`, the agent's own thoughts |
+| Agent edits a file | **What the code does**: a line from the file's imports and exports at once, replaced by a plain-language explanation from the model a few seconds later |
+| Files change | **How it connects**: the changed files, the unchanged project files they import (faded), and their packages, drawn from the real imports |
+| The explanation names a concept | One clip for that concept is queued as **Up next** (`Up next · Stripe webhooks · …`) |
 | Question answered | The card collapses to the constraint you set; the agent gets it on its next tool call |
-| Agent stopped | `Review the diff`, one sentence (“Checkout route added, 4 files”), video stops; after 5 s the column closes and Source Control opens |
+| Agent stopped | `Review the diff`, one sentence (“Checkout route added, 4 files”), **What changed** with the explanations and the diagram, video stops; the column then closes and Source Control opens (5 s, plus 4 s per explanation, at most 21 s) |
+
+The feed, explanations and diagram come from Cursor hooks (`postToolUse`, `afterFileEdit`, `afterAgentThought`). Explanations use OpenRouter when `OPENROUTER_API_KEY` is set (`MEANWHILE_EXPLAIN_MODEL` overrides the model); without a key the code-derived line stays. The model sees the task, the changed code and the first ~3 KB of the file; nothing is sent to the webview except the result. Hooks running twice (user and project `hooks.json`) are deduplicated.
 
 Colors come from the active theme (`--vscode-*` variables).
 

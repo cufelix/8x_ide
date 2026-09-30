@@ -38,4 +38,16 @@ function conversationIdFrom(input) {
   return input.conversation_id || input.conversationId || null;
 }
 
-export { conversationIdFrom, parseStdin, promptFrom };
+/**
+ * Which run a hook belongs to. Within one turn Cursor can report different
+ * conversation ids per hook type (thoughts vs tool/edit hooks), but the
+ * generation id is shared, so both travel together.
+ */
+function identityFrom(input) {
+  return {
+    conversationId: conversationIdFrom(input),
+    generationId: input.generation_id || input.generationId || null,
+  };
+}
+
+export { conversationIdFrom, identityFrom, parseStdin, promptFrom };

@@ -59,7 +59,34 @@ test("first clip plays with an Up next line of title and length", () => {
   const v = vm.buildView(session(), at(30));
   assert.equal(v.video.videoId, "a");
   assert.equal(v.video.lengthLabel, "2:10");
-  assert.deepEqual(v.upNext, { title: "Embedded Checkout", lengthLabel: "6:04" });
+  assert.deepEqual(v.upNext, { title: "Embedded Checkout", lengthLabel: "6:04", why: null });
+});
+
+test("live feed, explanations and schema reach the view with relative times", () => {
+  const s = {
+    ...session(),
+    feed: [
+      { id: "t2", at: new Date(at(28)).toISOString(), kind: "run", label: "Ran", detail: "npm test", status: "exit 1" },
+      { id: "t1", at: new Date(at(0)).toISOString(), kind: "read", label: "Read", detail: "app/page.tsx" },
+    ],
+    explain: [{ id: "e1", path: "route.ts", text: "Adds POST.", status: "pending", at: new Date(at(20)).toISOString() }],
+    schema: { nodes: [{ id: "route.ts", label: "route.ts", kind: "file", layer: 0 }], edges: [] },
+    videos: [{ videoId: "a", title: "A", durationSec: 100 }, { videoId: "c", title: "C", durationSec: 60, concept: "Stripe webhooks" }],
+  };
+  const v = vm.buildView(s, at(30));
+  assert.deepEqual(v.feed.map((f) => [f.label, f.ago, f.status]), [["Ran", "now", "exit 1"], ["Read", "30s", null]]);
+  assert.deepEqual(v.explain[0], { id: "e1", path: "route.ts", text: "Adds POST.", concept: null, pending: true, ago: "10s" });
+  assert.equal(v.schema.nodes.length, 1);
+  assert.equal(v.upNext.why, "Stripe webhooks");
+
+  const stopped = vm.buildView({ ...s, codingAgent: { status: "stopped" } }, at(40));
+  assert.equal(stopped.explain.length, 1, "the explanations stay for the review");
+  assert.deepEqual(stopped.feed, []);
+});
+
+test("a run with only a feed is not an empty stage", () => {
+  const v = vm.buildView({ ...session(), videos: [], question: null, feed: [{ id: "x", at: new Date(at(0)).toISOString(), kind: "think", label: "Thinking", detail: "…" }] }, at(1));
+  assert.equal(v.stageEmpty, false);
 });
 
 test("when the clip ends and the run continues, roll forward to Up next", () => {

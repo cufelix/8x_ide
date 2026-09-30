@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { conversationIdFrom, parseStdin, promptFrom } from "./hook-io.mjs";
+import { identityFrom, parseStdin, promptFrom } from "./hook-io.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -17,7 +17,7 @@ try {
   // Local-only write; network research runs in a detached enrich process.
   onPromptSubmitted({
     prompt: promptFrom(input),
-    conversationId: conversationIdFrom(input),
+    ...identityFrom(input),
   });
   respond({ continue: true });
 } catch (err) {

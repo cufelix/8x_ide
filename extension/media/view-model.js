@@ -66,6 +66,48 @@
     return question.choices?.[n - 1]?.id ?? null;
   }
 
+  const FEED_SHOWN = 12;
+  const EXPLAIN_SHOWN = 4;
+
+  /** "now", "40s", "3m", "1h" since an ISO time. */
+  function agoLabel(iso, now) {
+    const t = Date.parse(iso || "");
+    if (!Number.isFinite(t)) return "";
+    const s = Math.max(0, Math.round((now - t) / 1000));
+    if (s < 5) return "now";
+    if (s < 60) return `${s}s`;
+    if (s < 3600) return `${Math.floor(s / 60)}m`;
+    return `${Math.floor(s / 3600)}h`;
+  }
+
+  function feedView(session, now) {
+    return (Array.isArray(session.feed) ? session.feed : []).slice(0, FEED_SHOWN).map((e) => ({
+      key: `${e.id}@${e.at}`,
+      kind: e.kind,
+      label: e.label,
+      detail: e.detail || "",
+      status: e.status || null,
+      ago: agoLabel(e.at, now),
+    }));
+  }
+
+  function explainView(session, now) {
+    return (Array.isArray(session.explain) ? session.explain : []).slice(0, EXPLAIN_SHOWN).map((e) => ({
+      id: e.id,
+      path: e.path,
+      text: e.text,
+      concept: e.concept || null,
+      pending: e.status === "pending",
+      ago: agoLabel(e.at, now),
+    }));
+  }
+
+  function schemaView(session) {
+    const s = session.schema;
+    if (!s || !Array.isArray(s.nodes) || !s.nodes.length) return null;
+    return { nodes: s.nodes, edges: Array.isArray(s.edges) ? s.edges : [] };
+  }
+
   const EMPTY = {
     phase: "none",
     headerText: null,
@@ -73,6 +115,9 @@
     chips: [],
     progressPct: 0,
     activityLine: null,
+    feed: [],
+    explain: [],
+    schema: null,
     video: null,
     upNext: null,
     question: null,
@@ -99,6 +144,8 @@
         headerText: "Review the diff",
         progressPct: 100,
         summary: session.summary || "Agent finished",
+        explain: explainView(session, now),
+        schema: schemaView(session),
         stageEmpty: false,
       };
     }
@@ -124,12 +171,15 @@
         url: clip.url || `https://www.youtube.com/watch?v=${clip.videoId}`,
         lengthLabel: formatLength(clip.durationSec),
         index: i,
+        why: clip.concept || null,
       };
       const next = videos[i + 1];
-      upNext = next ? { title: next.title, lengthLabel: formatLength(next.durationSec) } : null;
+      upNext = next ? { title: next.title, lengthLabel: formatLength(next.durationSec), why: next.concept || null } : null;
     }
 
     const question = questionView(session.question);
+    const feed = feedView(session, now);
+    const explain = explainView(session, now);
     return {
       phase: "running",
       headerText: ["Meanwhile", eta, ...chips].filter(Boolean).join(" · "),
@@ -137,13 +187,16 @@
       chips,
       progressPct: estimate ? Math.min(97, Math.max(3, (elapsedSec / estimate.secondsMax) * 100)) : 6,
       activityLine: session.activity?.line || null,
+      feed,
+      explain,
+      schema: schemaView(session),
       video,
       upNext,
       question,
       summary: null,
-      stageEmpty: !video && !question,
+      stageEmpty: !video && !question && !feed.length && !explain.length,
     };
   }
 
-  return { buildView, choiceForKey, formatLength, liveEstimate, formatRange };
+  return { agoLabel, buildView, choiceForKey, clipIndex, formatLength, liveEstimate, formatRange };
 });

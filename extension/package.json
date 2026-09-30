@@ -2,7 +2,7 @@
   "name": "meanwhile",
   "displayName": "Meanwhile",
   "description": "Make agent wait time useful: follow the work or open your favorite learning and practice sites in Vibe.",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "publisher": "meanwhile",
   "engines": {
     "vscode": "^1.85.0"
