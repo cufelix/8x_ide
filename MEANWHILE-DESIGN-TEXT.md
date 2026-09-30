@@ -1,0 +1,63 @@
+# Meanwhile design
+
+The half-tab beside a running Cursor agent is one column, max 420px, centered in the panel. Padding is 28px. Children stack with a 16px gap, and the type inside is left aligned. The font is the system UI (`-apple-system`, `BlinkMacSystemFont`, `Segoe UI`, `system-ui`, `sans-serif`), 13px, line-height 1.45. Titles are 15px, weight 600. Kickers are 10px, weight 600, uppercase, tracking 0.1em. Video title and meta are 12px. A card has 16px of padding and a 10px radius. A choice and a chip use a 7px radius. The well uses an 8px radius. The track is square.
+
+Color comes from the IDE theme. The field is `editor.background`. Primary text is `foreground`. Secondary and muted text are `descriptionForeground`. A filled control is `button.background`, and its label is `button.foreground`. Hairlines and card edges are `widget.border`. Focus is `focusBorder`. A quiet “Meanwhile” mark may sit in the corner, kicker size, `descriptionForeground`. It is not a hero. When a child appears it may fade up 10px over 420ms. The track fill is the only other motion.
+
+Do not paint the black marketing stage. No full-bleed `#000` field, no grey radial wash, no vertical gradient to black, no glass blur, no heavy drop shadow. The panel should look like it belongs in Cursor.
+
+On screen, top to bottom: the header (wait and chips), the track, the player, the question, the activity line. When the agent stops, that header becomes “Review the diff”.
+
+## Wait range
+
+**Looks.** One header line, 15px, weight 600, `foreground`, left aligned: `Meanwhile · ~6–10 min`. Under it, a 2px track the full content width, square ends, no end label. Elapsed time is `foreground`. The remainder is `widget.border`. Focusing the track draws a `focusBorder` outline and leaves the picture the same. The line and the track are the header. They stay a glance.
+
+**States.** Empty paints “Estimating the wait…”, same size and weight, with the hairline and no fill. Estimating is that same line. Running replaces it with the range, and the track fills against the bucket (short 2–4, medium 5–10, long 10–20, marathon 20+). When the run passes the top, the line steps in place to “Running long · ~10–20 min” and the track takes the new scale, still `foreground` on `widget.border`. Answered leaves this header as it was. Finished replaces the lead, and the track leaves with the wait.
+
+**Do not draw.** No countdown, no percentage, no ticks, no alarm color, no ring, no start button. A figure that asks to be checked does not belong on this line.
+
+## Stack chips
+
+**Looks.** On that same header line, after the range, a short row of names: `Stripe` `Next.js`. Each chip is 12px, weight 600, `foreground`, 2px 8px padding, radius 7px, a 1px `widget.border`, and no fill. The gap between chips is 6px. They sit on the line’s center axis and wrap under it only when the row is full. They read as labels.
+
+**States.** Empty and estimating show the header without chips, and without placeholder pills. Running paints them on first paint. A later agent thought adds one chip beside the ones already there, in place. Answered leaves the row as it is. Finished drops the row with the wait header, so the finish line is only the review.
+
+**Do not draw.** No icons, no “+”, no link underline, no docs popover, no count badge. The row is full when it has named the stack.
+
+## Player
+
+**Looks.** One 16:9 well, radius 8px, a 1px `widget.border`, capped so the card under it stays on screen. At the full column the picture is the 16:9 of the content width, about 205px tall, and it does not grow past that. On a short panel the well shrinks before the question does. Any letterbox is `editor.background`. Title and length sit under the well on one line, 12px: the title in `foreground` at weight 600, the length in `descriptionForeground` (“Stripe Checkout vs Lemon Squeezy”, 6:12). Under that, one row: the kicker “Up next”, then the next title and length at 12px. Play and pause sit on the picture only while the pointer is over the well, small, on `button.background`. With no key, one muted line under the title, 12px `descriptionForeground`: “Using the offline set.”
+
+**States.** Empty and estimating draw no well and no next row. Running shows the clip, the title, and that one row. If a short estimate was wrong and the run continues, the well advances to Up next and the row updates. Answered leaves the well playing. Finished stops playback, eases the audio down over about a second, and leaves a still. Controls stay off the picture.
+
+**Do not draw.** No queue, no playlist, no scrubber as the object, no chapter list, no related-video grid, no channel art, no like count. Up next is a single row. The column stays a player.
+
+## One question
+
+**Looks.** One card, padding 16px, radius 10px, 1px `widget.border`, fill `editor.background`. The kicker “Meanwhile asks” is 10px, weight 600, uppercase, tracking 0.1em, `descriptionForeground`. The title “Only you can decide” is 15px, weight 600, `foreground`. The sentence is 13px, line-height 1.45, `descriptionForeground`. Three choices stack under it with a 6px gap, full width, left aligned, radius 7px, 13px `foreground`, 8px 12px padding, 1px `widget.border`, no fill. Hover and keyboard focus use `focusBorder`. The picked row fills `button.background` and its label uses `button.foreground`. “Leave it” is the same kind of button, last.
+
+**States.** Empty and estimating draw no card and leave no reserved hole. Running draws the card only when the agent is blocked on a constraint the repo cannot answer. Answered marks the picked row, then collapses the card to one line, 13px `foreground`, no border and no kicker: “Constraint: ship the thinnest slice”. “Leave it” collapses to “Left it to the agent”. That line stays for the rest of the run. Finished keeps an answered line. An unanswered card leaves with the block.
+
+**Do not draw.** No second card, no text field, no skip link beside the choices, no progress dots, no avatar. Three full-width buttons are the only list. After the collapse, the card chrome is gone.
+
+## Activity line
+
+**Looks.** One sentence, 13px, `foreground`, left aligned, no card and no rule: “Adding the checkout route”. The previous sentence may sit on the next line, same size, `descriptionForeground`, then drop. The pair is two lines. The copy is a verb and an object.
+
+**States.** Empty and estimating show nothing in this slot. Running replaces the sentence in place as the agent moves; the outgoing line is the muted one, then it is gone. Answered leaves the line free to keep replacing. Finished does not add a second status. The review block’s “Agent finished.” is this line, once.
+
+**Do not draw.** No step list, no checkmarks, no spinner as the widget, no file tree, no log, no timestamp. The thread on the other side of the split holds the detail.
+
+## Review the diff
+
+**Looks.** The header’s lead becomes the control: “Review the diff”, 15px, weight 600, `foreground`, left aligned. Focus draws a `focusBorder` outline. It is the size of the old header line, one action. Under it, one sentence, 13px `foreground`: “Checkout route added, 4 files”. Under that, “Agent finished.”, 13px `descriptionForeground`. An answered constraint stays as its one line beneath, same body size. The track, the chips, and an unanswered card are gone. Padding and the 16px gap stay. The column is shorter than the wait.
+
+**States.** Empty, estimating, running, and answered keep the wait header. Finished is the only state that shows this lead, and from then on it is the header.
+
+**Do not draw.** No confetti, no score, no share control, no second button, no diff preview inside the pane. The diff is the view in the editor. This pane is the pointer.
+
+## Leave out
+
+1. **Points.** No XP, score, league, or focus total in the header or under the card. A number there wants to be checked. The header stays a glance.
+2. **Streaks.** No heatmap, contribution graph, or day-count flame. This surface has no yesterday.
+3. **A second task list.** No goals, timers, or backlog. The only list in the column is the three choices, once.
