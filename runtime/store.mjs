@@ -72,6 +72,27 @@ export function appendActivity(entry) {
   });
 }
 
+export function readActivityTail(limit = 40) {
+  if (!existsSync(activityPath())) {
+    return [];
+  }
+  try {
+    const lines = readFileSync(activityPath(), "utf8")
+      .trim()
+      .split("\n")
+      .filter(Boolean);
+    return lines.slice(-limit).map((line) => {
+      try {
+        return JSON.parse(line);
+      } catch {
+        return null;
+      }
+    }).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
 export function utcDate(now = new Date()) {
   return now.toISOString().slice(0, 10);
 }

@@ -7,17 +7,15 @@
     <title>Meanwhile</title>
     <style>
       :root {
-        --bg: #000000;
-        --fg: #e4e4e4;
-        --text: rgba(228, 228, 228, 0.92);
-        --text-2: rgba(228, 228, 228, 0.55);
-        --text-3: rgba(228, 228, 228, 0.37);
-        --wash: rgba(228, 228, 228, 0.04);
-        --border: rgba(228, 228, 228, 0.1);
-        --hover: rgba(228, 228, 228, 0.08);
+        --bg: #000;
+        --fg: #e8e8e8;
+        --muted: rgba(232, 232, 232, 0.48);
+        --faint: rgba(232, 232, 232, 0.28);
+        --line: rgba(232, 232, 232, 0.08);
         --font: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui,
           sans-serif;
-        --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        --pad: clamp(16px, 4vw, 28px);
+        --focus-w: min(100%, 380px);
       }
 
       * {
@@ -29,257 +27,514 @@
         margin: 0;
         height: 100%;
         background: var(--bg);
-        color: var(--text);
+        color: var(--fg);
         font-family: var(--font);
         font-size: 13px;
-        line-height: 1.45;
+        line-height: 1.5;
         -webkit-font-smoothing: antialiased;
         overflow: hidden;
       }
 
-      /* Empty default: black + soft grey gradient only */
       .stage {
         position: relative;
-        width: 100%;
         height: 100%;
+        width: 100%;
         background:
           radial-gradient(
-            ellipse 80% 60% at 50% 35%,
-            rgba(80, 80, 80, 0.28) 0%,
-            rgba(30, 30, 30, 0.12) 45%,
-            transparent 70%
+            ellipse 70% 55% at 50% 40%,
+            rgba(255, 255, 255, 0.05) 0%,
+            transparent 65%
           ),
-          linear-gradient(180deg, #0a0a0a 0%, #000 55%, #050505 100%);
+          #000;
       }
 
-      /* Floating content blocks — appear only when present */
-      .layer {
+      /* Top: one quiet line */
+      .meta {
         position: absolute;
-        inset: 0;
-        pointer-events: none;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
+        inset: 0 0 auto 0;
+        padding: 14px var(--pad) 0;
+        display: none;
         align-items: center;
-        padding: 28px;
-        gap: 16px;
+        justify-content: space-between;
+        gap: 12px;
+        z-index: 3;
+        color: var(--muted);
+        font-size: 11px;
+        letter-spacing: 0.02em;
       }
 
-      .layer > * {
-        pointer-events: auto;
-        max-width: 420px;
-        width: 100%;
-        animation: rise 420ms ease-out both;
+      .meta.is-on {
+        display: flex;
       }
 
-      @keyframes rise {
+      .meta .left {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .meta .eta {
+        flex: 0 0 auto;
+        opacity: 0.9;
+      }
+
+      .hair {
+        position: absolute;
+        left: var(--pad);
+        right: var(--pad);
+        top: 36px;
+        height: 1px;
+        background: var(--line);
+        display: none;
+        overflow: hidden;
+      }
+
+      .hair.is-on {
+        display: block;
+      }
+
+      .hair > i {
+        display: block;
+        height: 100%;
+        width: 0;
+        background: rgba(232, 232, 232, 0.35);
+        transition: width 0.8s linear;
+      }
+
+      /* Center focus — only one primary surface */
+      .focus {
+        position: absolute;
+        inset: 48px var(--pad) 56px;
+        display: grid;
+        place-items: center;
+      }
+
+      .surface {
+        display: none;
+        width: var(--focus-w);
+        animation: in 380ms ease-out both;
+      }
+
+      .surface.is-on {
+        display: block;
+      }
+
+      @keyframes in {
         from {
           opacity: 0;
-          transform: translateY(10px);
+          transform: translateY(8px);
         }
         to {
           opacity: 1;
-          transform: translateY(0);
+          transform: none;
         }
       }
 
-      /* Hidden until content arrives */
-      .block {
-        display: none;
-      }
-
-      .block.is-on {
+      /* Video — thumbnail card (webview embeds hit YouTube Error 153) */
+      .video {
+        width: 100%;
+        aspect-ratio: 16 / 9;
+        border-radius: 4px;
+        overflow: hidden;
+        background: rgba(255, 255, 255, 0.02);
+        position: relative;
+        cursor: pointer;
+        border: 0;
+        padding: 0;
         display: block;
       }
 
-      .video {
-        aspect-ratio: 16 / 9;
-        width: 100%;
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        background: rgba(0, 0, 0, 0.55);
-        overflow: hidden;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
-      }
-
-      .video iframe,
-      .video .ph {
+      .video img {
         width: 100%;
         height: 100%;
-        border: 0;
+        object-fit: cover;
+        display: block;
+        opacity: 0.92;
+      }
+
+      .video .play {
+        position: absolute;
+        inset: 0;
         display: grid;
         place-items: center;
-        color: var(--text-3);
+        background: radial-gradient(
+          circle at center,
+          rgba(0, 0, 0, 0.35),
+          rgba(0, 0, 0, 0.55)
+        );
+      }
+
+      .video .play span {
+        width: 52px;
+        height: 52px;
+        border-radius: 999px;
+        border: 1px solid rgba(232, 232, 232, 0.35);
+        background: rgba(0, 0, 0, 0.45);
+        display: grid;
+        place-items: center;
+        color: #fff;
+        font-size: 18px;
+        padding-left: 3px;
+      }
+
+      .video-caption {
+        margin-top: 10px;
+        color: var(--muted);
         font-size: 12px;
-        background: rgba(255, 255, 255, 0.02);
+        text-align: center;
       }
 
-      .video .ph strong {
-        display: block;
-        color: var(--text-2);
-        font-weight: 500;
-        margin-bottom: 4px;
-      }
-
-      .card {
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        background: rgba(12, 12, 12, 0.82);
-        backdrop-filter: blur(12px);
-        padding: 16px 16px 14px;
-        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
-      }
-
-      .card .kicker {
+      /* Ask — typography first, no card chrome */
+      .ask .kicker {
+        color: var(--faint);
         font-size: 10px;
-        font-weight: 600;
-        letter-spacing: 0.1em;
+        letter-spacing: 0.14em;
         text-transform: uppercase;
-        color: var(--text-3);
-        margin-bottom: 8px;
+        margin-bottom: 10px;
       }
 
-      .card h2 {
+      .ask h2 {
         margin: 0 0 8px;
-        font-size: 15px;
-        font-weight: 600;
+        font-size: clamp(15px, 2.4vw, 18px);
+        font-weight: 500;
         letter-spacing: -0.02em;
-        color: var(--text);
+        line-height: 1.25;
       }
 
-      .card p {
-        margin: 0 0 14px;
-        color: var(--text-2);
+      .ask p {
+        margin: 0 0 18px;
+        color: var(--muted);
         font-size: 13px;
+        white-space: pre-wrap;
+        max-height: 28vh;
+        overflow: auto;
       }
 
       .choices {
         display: flex;
         flex-direction: column;
-        gap: 6px;
+        gap: 4px;
       }
 
       .choice {
+        appearance: none;
         text-align: left;
         width: 100%;
-        padding: 10px 12px;
-        border: 1px solid var(--border);
-        border-radius: 7px;
+        padding: 9px 0;
+        border: 0;
+        border-bottom: 1px solid var(--line);
         background: transparent;
-        color: var(--text);
+        color: var(--fg);
         font: inherit;
+        font-size: 13px;
         cursor: pointer;
+      }
+
+      .choice:last-child {
+        border-bottom: 0;
       }
 
       .choice:hover {
-        background: var(--hover);
-        border-color: rgba(228, 228, 228, 0.2);
+        color: #fff;
       }
 
-      /* Tiny corner mark — barely there */
+      .ask-actions {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 16px;
+      }
+
+      .ghost {
+        appearance: none;
+        border: 0;
+        background: transparent;
+        color: var(--muted);
+        font: inherit;
+        font-size: 12px;
+        cursor: pointer;
+        padding: 4px 0;
+      }
+
+      .ghost:hover {
+        color: var(--fg);
+      }
+
+      .done {
+        text-align: center;
+        color: var(--muted);
+      }
+
+      .done strong {
+        display: block;
+        color: var(--fg);
+        font-weight: 500;
+        margin-bottom: 6px;
+      }
+
+      /* Bottom whisper */
+      .whisper {
+        position: absolute;
+        left: var(--pad);
+        right: var(--pad);
+        bottom: 14px;
+        display: none;
+        color: var(--faint);
+        font-size: 11px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        text-align: center;
+      }
+
+      .whisper.is-on {
+        display: block;
+      }
+
       .mark {
         position: absolute;
-        left: 14px;
-        bottom: 12px;
+        left: var(--pad);
+        bottom: 14px;
         font-size: 11px;
-        letter-spacing: 0.04em;
-        color: var(--text-3);
+        color: var(--faint);
         opacity: 0.55;
-        user-select: none;
+        pointer-events: none;
       }
 
-      /* Demo controls (preview only) — remove later */
-      .demo {
-        position: absolute;
-        right: 12px;
-        bottom: 10px;
-        display: flex;
-        gap: 6px;
-        opacity: 0.35;
+      .stage.has-session .mark {
+        display: none;
       }
 
-      .demo:hover {
-        opacity: 0.9;
+      /* Narrow half-tab: tighter type, no video caption */
+      @container (max-width: 320px) {
+        .ask h2 {
+          font-size: 15px;
+        }
+        .video-caption {
+          display: none;
+        }
       }
 
-      .demo button {
-        border: 1px solid var(--border);
-        background: rgba(0, 0, 0, 0.5);
-        color: var(--text-2);
-        font: inherit;
-        font-size: 10px;
-        letter-spacing: 0.04em;
-        text-transform: uppercase;
-        padding: 5px 8px;
-        border-radius: 4px;
-        cursor: pointer;
-      }
-
-      .demo button:hover {
-        color: var(--text);
-        border-color: rgba(228, 228, 228, 0.22);
+      .stage {
+        container-type: inline-size;
       }
     </style>
   </head>
   <body>
-    <div class="stage">
-      <div class="layer">
-        <div id="video" class="block video">
-          <div class="ph">
-            <strong>Stripe vs Lemon Squeezy</strong>
-            comparison · 6:12
-          </div>
-        </div>
+    <div class="stage" id="stage">
+      <div class="meta" id="meta">
+        <div class="left" id="stack"></div>
+        <div class="eta" id="eta"></div>
+      </div>
+      <div class="hair" id="hair"><i id="bar"></i></div>
 
-        <div id="question" class="block card">
-          <div class="kicker">Meanwhile asks</div>
-          <h2>Only you can decide</h2>
-          <p>
-            While the agent wires Stripe, pick the constraint it cannot infer
-            from the repo alone.
-          </p>
-          <div class="choices">
-            <button class="choice" type="button">
-              Ship the thinnest vertical slice
-            </button>
-            <button class="choice" type="button">
-              Preserve existing behavior even if slower
-            </button>
-            <button class="choice" type="button">
-              Prefer clean internals; polish later
-            </button>
-          </div>
+      <div class="focus">
+        <div class="surface" id="videoWrap">
+          <div id="video"></div>
+          <div class="video-caption" id="videoCap"></div>
         </div>
+        <div class="surface ask" id="ask"></div>
+        <div class="surface done" id="done"></div>
       </div>
 
+      <div class="whisper" id="whisper"></div>
       <div class="mark">Meanwhile</div>
-
-      <div class="demo" title="Preview toggles — not shipping UI">
-        <button type="button" data-show="none">Empty</button>
-        <button type="button" data-show="video">Video</button>
-        <button type="button" data-show="question">Ask</button>
-        <button type="button" data-show="both">Both</button>
-      </div>
     </div>
 
     <script>
-      const video = document.getElementById("video");
-      const question = document.getElementById("question");
+      const vscode = acquireVsCodeApi();
+      const stage = document.getElementById("stage");
+      const meta = document.getElementById("meta");
+      const stackEl = document.getElementById("stack");
+      const etaEl = document.getElementById("eta");
+      const hair = document.getElementById("hair");
+      const bar = document.getElementById("bar");
+      const videoWrap = document.getElementById("videoWrap");
+      const videoEl = document.getElementById("video");
+      const videoCap = document.getElementById("videoCap");
+      const askEl = document.getElementById("ask");
+      const doneEl = document.getElementById("done");
+      const whisper = document.getElementById("whisper");
+      const voice = document.createElement("audio");
+      voice.preload = "auto";
+      document.body.appendChild(voice);
+      let lastVoiceUri = null;
 
-      function show(mode) {
-        video.classList.toggle("is-on", mode === "video" || mode === "both");
-        question.classList.toggle(
-          "is-on",
-          mode === "question" || mode === "both"
+      let lastVideoId = null;
+      let preferAsk = false;
+      /** @type {'ask' | 'video' | 'done' | 'empty'} */
+      let mode = "empty";
+
+      function on(el, yes) {
+        el.classList.toggle("is-on", !!yes);
+      }
+
+      function escapeHtml(s) {
+        return String(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+      }
+
+      function progressPct(session, now) {
+        const started = session?.codingAgent?.startedAt;
+        const max = session?.estimate?.secondsMax;
+        if (!started || !max) return 6;
+        const elapsed = (now - Date.parse(started)) / 1000;
+        return Math.max(3, Math.min(97, (elapsed / max) * 100));
+      }
+
+      function setMode(next) {
+        mode = next;
+        on(videoWrap, next === "video");
+        on(askEl, next === "ask");
+        on(doneEl, next === "done");
+        if (next !== "video") {
+          lastVideoId = null;
+          videoEl.innerHTML = "";
+        }
+      }
+
+      function renderVideo(primary) {
+        if (!primary?.videoId) return;
+        if (primary.videoId !== lastVideoId) {
+          lastVideoId = primary.videoId;
+          const thumb = `https://i.ytimg.com/vi/${encodeURIComponent(
+            primary.videoId
+          )}/hqdefault.jpg`;
+          videoEl.innerHTML = `
+            <button class="video" type="button" data-url="${escapeHtml(
+              primary.url ||
+                `https://www.youtube.com/watch?v=${primary.videoId}`
+            )}" title="Open on YouTube">
+              <img src="${thumb}" alt="" />
+              <div class="play"><span>▶</span></div>
+            </button>
+          `;
+          videoEl.querySelector("button.video")?.addEventListener("click", () => {
+            const url = videoEl.querySelector("button.video")?.dataset.url;
+            if (url) vscode.postMessage({ type: "openUrl", url });
+          });
+        }
+        videoCap.innerHTML = `${escapeHtml(
+          primary.title || ""
+        )} <button class="ghost" type="button" data-act="to-ask" style="margin-left:8px">Continue</button>`;
+        videoCap.querySelector("[data-act=to-ask]")?.addEventListener(
+          "click",
+          () => {
+            preferAsk = true;
+            vscode.postMessage({ type: "ready" });
+          }
         );
       }
 
-      // Default: empty black + gradient. Nothing else.
-      show("none");
+      function renderAsk(card) {
+        const choices = (card.choices || [])
+          .map(
+            (c) =>
+              `<button class="choice" type="button" data-id="${escapeHtml(
+                c.id
+              )}">${escapeHtml(c.label)}</button>`
+          )
+          .join("");
+        askEl.innerHTML = `
+          <div class="kicker">Meanwhile</div>
+          <h2>${escapeHtml(card.title || "")}</h2>
+          <p>${escapeHtml(card.body || "")}</p>
+          ${choices ? `<div class="choices">${choices}</div>` : ""}
+          <div class="ask-actions">
+            <button class="ghost" type="button" data-act="skip">Skip</button>
+          </div>
+        `;
+        askEl.querySelectorAll(".choice").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            preferAsk = false;
+            vscode.postMessage({ type: "answer", choiceId: btn.dataset.id });
+          });
+        });
+        askEl.querySelector("[data-act=skip]")?.addEventListener("click", () => {
+          preferAsk = false;
+          vscode.postMessage({ type: "next" });
+        });
+      }
 
-      document.querySelectorAll(".demo button").forEach((btn) => {
-        btn.addEventListener("click", () => show(btn.dataset.show));
+      function pickMode(session, card) {
+        const stopped = session.codingAgent?.status === "stopped";
+        const finished =
+          session.status === "completed" ||
+          (session.cards && session.cursor >= session.cards.length);
+
+        if (finished || (stopped && !card)) return "done";
+        if (!card && session.videos?.[0]) return "video";
+        if (!card) return "empty";
+
+        const hasChoices = !!(card.choices && card.choices.length);
+        if (hasChoices || preferAsk) return "ask";
+        if (session.videos?.[0] && !preferAsk) return "video";
+        return "ask";
+      }
+
+      function render(state) {
+        const session = state?.session;
+        const card = state?.card;
+        const activity = state?.activity || [];
+        const now = state?.now || Date.now();
+
+        if (!session) {
+          stage.classList.remove("has-session");
+          on(meta, false);
+          on(hair, false);
+          on(whisper, false);
+          setMode("empty");
+          return;
+        }
+
+        stage.classList.add("has-session");
+        on(meta, true);
+        on(hair, true);
+        stackEl.textContent = (session.stack || []).join(" · ") || "Meanwhile";
+        etaEl.textContent = session.estimate?.label || "";
+        bar.style.width = `${progressPct(session, now)}%`;
+
+        const next = pickMode(session, card);
+        setMode(next);
+
+        if (next === "video") {
+          renderVideo(session.videos[0]);
+          const line =
+            activity.slice().reverse().find((a) => a.excerpt)?.excerpt ||
+            card?.title ||
+            "";
+          on(whisper, !!line);
+          whisper.textContent = line;
+        } else if (next === "ask") {
+          renderAsk(card);
+          const line = activity.slice().reverse().find((a) => a.excerpt)?.excerpt;
+          on(whisper, !!line);
+          whisper.textContent = line || "";
+        } else if (next === "done") {
+          const stopped = session.codingAgent?.status === "stopped";
+          doneEl.innerHTML = `<strong>${
+            stopped ? "Agent finished" : "You’re caught up"
+          }</strong>Review the diff when you’re ready.`;
+          on(whisper, false);
+        } else {
+          on(whisper, false);
+        }
+
+        if (state?.voiceUri && state.voiceUri !== lastVoiceUri) {
+          lastVoiceUri = state.voiceUri;
+          voice.src = state.voiceUri;
+          voice.play().catch(() => {});
+        }
+      }
+
+      window.addEventListener("message", (event) => {
+        if (event.data?.type === "state") render(event.data.payload);
       });
+
+      vscode.postMessage({ type: "ready" });
     </script>
   </body>
 </html>

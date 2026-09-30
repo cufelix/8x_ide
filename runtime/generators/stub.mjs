@@ -16,51 +16,88 @@ function card(partial) {
     choices: partial.choices ?? null,
     expectedChoiceId: partial.expectedChoiceId ?? null,
     xp: partial.xp,
-    media: { type: "none" },
+    media: partial.media ?? { type: "none" },
+    durationSec: partial.durationSec ?? 60,
     contextRefs: partial.contextRefs ?? [],
   };
 }
 
 /**
- * Deterministic cards from the captured prompt. Swap via generators/index.mjs.
+ * Stack-aware lesson cards. Count scales with estimate mid-seconds.
  */
-export function generateLesson({ prompt, repoHints = [] }) {
+export function generateLesson({
+  prompt,
+  repoHints = [],
+  stack = [],
+  estimate = null,
+  videos = [],
+}) {
   const summary = clip(prompt, 240);
-  const hint = repoHints[0] || "this repository";
+  const primary = stack[0] || "this stack";
+  const secondary = stack[1] || null;
+  const mid = estimate
+    ? Math.round((estimate.secondsMin + estimate.secondsMax) / 2)
+    : 480;
+  const maxCards = Math.max(2, Math.min(6, Math.ceil(mid / 90)));
 
-  return [
+  const cards = [
     card({
       id: "explain-intent",
       kind: "explain",
       title: "What the agent is doing",
-      body: `The coding agent is working from this ask:\n\n“${summary}”\n\nYour job on this card: name the outcome you will own when it comes back.`,
+      body: `Working from:\n\n“${summary}”\n\n${
+        stack.length
+          ? `Detected stack: ${stack.join(", ")}.`
+          : "No stack keywords detected yet — watch activity for clues."
+      }`,
       xp: 10,
+      durationSec: 50,
+      media: videos[0]
+        ? { type: "video", ref: videos[0].videoId }
+        : { type: "none" },
     }),
     card({
       id: "decision-scope",
       kind: "decision",
       title: "Only you can decide",
-      body: "While the agent implements, pick the constraint it cannot infer from the repo alone.",
+      body: `While the agent ${
+        stack.length ? `wires ${primary}` : "implements"
+      }, pick the constraint it cannot infer from the repo alone.`,
       choices: [
         { id: "ship-thin", label: "Ship the thinnest vertical slice" },
         { id: "keep-compat", label: "Preserve existing behavior even if slower" },
         { id: "optimize-later", label: "Prefer clean internals; polish later" },
       ],
       xp: 20,
+      durationSec: 45,
     }),
-    card({
-      id: "teach-system",
-      kind: "teach",
-      title: "The system you are about to own",
-      body: `This change will live in ${hint}. Which failure mode should you verify first when the agent stops?`,
-      choices: [
-        { id: "happy-path", label: "The happy path the prompt named" },
-        { id: "adjacent", label: "An adjacent flow that shares state" },
-        { id: "empty-error", label: "Empty / error states" },
-      ],
-      expectedChoiceId: "adjacent",
-      xp: 15,
-    }),
+  ];
+
+  if (secondary) {
+    cards.push(
+      card({
+        id: "teach-compare",
+        kind: "teach",
+        title: `${primary} vs the alternative`,
+        body: `You are committing to ${primary}${
+          secondary ? ` alongside ${secondary}` : ""
+        }. When would you pick something else instead?`,
+        choices: [
+          {
+            id: "simpler",
+            label: "When a simpler hosted alternative is enough",
+          },
+          { id: "scale", label: "Only when you already know you need scale" },
+          { id: "never", label: "Never — stick with the agent's first pick" },
+        ],
+        expectedChoiceId: "simpler",
+        xp: 15,
+        durationSec: 60,
+      })
+    );
+  }
+
+  cards.push(
     card({
       id: "quiz-ownership",
       kind: "quiz",
@@ -73,13 +110,28 @@ export function generateLesson({ prompt, repoHints = [] }) {
       ],
       expectedChoiceId: "summary",
       xp: 15,
-    }),
-    card({
-      id: "explain-wait",
-      kind: "explain",
-      title: "Why this wait exists",
-      body: "Long agent runs are a feature, not a loading spinner. Use them to lock decisions and mental models so review is cheap.",
-      xp: 10,
-    }),
-  ];
+      durationSec: 45,
+    })
+  );
+
+  if (maxCards > 4) {
+    cards.push(
+      card({
+        id: "teach-verify",
+        kind: "teach",
+        title: "Verify first",
+        body: `This change will touch ${repoHints[0] || "this repository"}. Which failure mode do you check first?`,
+        choices: [
+          { id: "happy-path", label: "The happy path the prompt named" },
+          { id: "adjacent", label: "An adjacent flow that shares state" },
+          { id: "empty-error", label: "Empty / error states" },
+        ],
+        expectedChoiceId: "adjacent",
+        xp: 15,
+        durationSec: 55,
+      })
+    );
+  }
+
+  return cards.slice(0, maxCards);
 }

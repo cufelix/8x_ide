@@ -1,3 +1,7 @@
 .remember/
 *.vsix
 .cursor/hooks/state/
+.meanwhile/
+.env
+.env.local
+meanwhile.env

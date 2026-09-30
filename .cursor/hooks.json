@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "hooks": {
+    "beforeSubmitPrompt": [
+      {
+        "command": "node hooks/before-submit-prompt.mjs",
+        "timeout": 20
+      }
+    ],
+    "sessionStart": [
+      {
+        "command": "node hooks/session-start.mjs",
+        "timeout": 5
+      }
+    ],
+    "afterFileEdit": [
+      {
+        "command": "node hooks/after-file-edit.mjs",
+        "timeout": 5
+      }
+    ],
+    "afterAgentThought": [
+      {
+        "command": "node hooks/after-agent-thought.mjs",
+        "timeout": 5
+      }
+    ],
+    "stop": [
+      {
+        "command": "node hooks/stop.mjs",
+        "timeout": 5
+      }
+    ]
+  }
+}
