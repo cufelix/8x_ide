@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "hooks": {
+    "beforeSubmitPrompt": [
+      {
+        "command": "node \"${CURSOR_PLUGIN_ROOT}/hooks/before-submit-prompt.mjs\""
+      }
+    ],
+    "sessionStart": [
+      {
+        "command": "node \"${CURSOR_PLUGIN_ROOT}/hooks/session-start.mjs\""
+      }
+    ],
+    "afterFileEdit": [
+      {
+        "command": "node \"${CURSOR_PLUGIN_ROOT}/hooks/after-file-edit.mjs\""
+      }
+    ],
+    "afterAgentThought": [
+      {
+        "command": "node \"${CURSOR_PLUGIN_ROOT}/hooks/after-agent-thought.mjs\""
+      }
+    ],
+    "stop": [
+      {
+        "command": "node \"${CURSOR_PLUGIN_ROOT}/hooks/stop.mjs\""
+      }
+    ]
+  }
+}

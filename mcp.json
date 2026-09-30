@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "meanwhile": {
+      "command": "node",
+      "args": ["${CURSOR_PLUGIN_ROOT}/mcp/server.mjs"]
+    }
+  }
+}

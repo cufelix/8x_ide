@@ -1,0 +1,33 @@
+{
+  "name": "meanwhile",
+  "displayName": "Meanwhile",
+  "description": "Half-screen waiting room while a coding agent runs.",
+  "version": "0.1.2",
+  "publisher": "meanwhile",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "meanwhile.open",
+        "title": "Meanwhile: Open",
+        "icon": "$(window)"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "meanwhile.open",
+        "key": "ctrl+alt+m",
+        "mac": "cmd+alt+m"
+      }
+    ]
+  }
+}
