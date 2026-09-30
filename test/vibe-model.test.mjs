@@ -28,7 +28,7 @@ test("catalog contains fixed official destinations and only a verified official 
 });
 
 test("local preferences, pinned services, and recent order resume after reload", () => {
-  let state = vibe.initialState();
+  let state = vibe.initialState({ version: 2, theme: "light" });
   state = vibe.toggleInterest(state, "languages");
   state = vibe.togglePin(state, "duolingo");
   state = vibe.choose(state, "monkeytype");
@@ -36,6 +36,7 @@ test("local preferences, pinned services, and recent order resume after reload",
   state = vibe.choose(state, "monkeytype");
   const saved = roundTrip(state);
   assert.deepEqual(saved, state);
+  assert.equal(saved.theme, "light");
   assert.deepEqual(saved.interestIds, ["languages"]);
   assert.deepEqual(saved.pinnedIds, ["duolingo"]);
   assert.deepEqual(saved.recentIds, ["monkeytype", "duolingo"]);
@@ -67,7 +68,7 @@ test("malformed state discards unknown IDs, duplicate IDs, and all supplied URLs
     activities: [{ id: "duolingo", url: "https://evil.example" }],
   });
   assert.deepEqual(state, {
-    version: 2, interestIds: ["languages"], pinnedIds: ["duolingo"], recentIds: ["monkeytype", "lichess"], selectedActivityId: null,
+    version: 2, theme: "system", interestIds: ["languages"], pinnedIds: ["duolingo"], recentIds: ["monkeytype", "lichess"], selectedActivityId: null,
   });
   assert.equal(vibe.getActivity("duolingo").url, "https://www.duolingo.com/learn");
   for (const id of [null, {}, "https://evil.example", "__proto__", "constructor"]) {
@@ -86,7 +87,7 @@ test("discontinued lesson state is not treated as service preferences", () => {
   for (const raw of [null, [], "garbage", { version: 99 }, {
     version: 1, topicId: "spanish", levelId: "starter", screen: "lesson", progress: { secret: "not imported" },
   }]) assert.deepEqual(vibe.initialState(raw), defaults);
-  assert.deepEqual(Object.keys(defaults), ["version", "interestIds", "pinnedIds", "recentIds", "selectedActivityId"]);
+  assert.deepEqual(Object.keys(defaults), ["version", "theme", "interestIds", "pinnedIds", "recentIds", "selectedActivityId"]);
 });
 
 test("model transitions never mutate snapshots or duplicate recent and pinned entries", () => {

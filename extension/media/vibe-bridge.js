@@ -9,6 +9,7 @@
     const statusText = document.getElementById("vibeSaveText");
     const retry = document.getElementById("vibeSaveRetry");
     const buttons = [...document.querySelectorAll("[data-mode]")];
+    const themeButton = document.getElementById("themeToggle");
     let mode = "work";
     let state = root.MeanwhileVibe.initialState();
     let initialized = false;
@@ -33,6 +34,11 @@
         if (agent.finished) vscode.postMessage({ type: "openDiff" });
       },
     });
+    const appearance = root.MeanwhileTheme.mount(themeButton, (theme) => {
+      state = root.MeanwhileVibe.initialState({ ...state, theme });
+      ui.update(state);
+      save(state);
+    });
 
     function setMode(next, notify = false) {
       mode = next === "vibe" ? "vibe" : "work";
@@ -45,6 +51,7 @@
         button.disabled = !initialized;
       });
       ui.setVisible(mode === "vibe");
+      themeButton.disabled = !initialized;
       onModeChange(mode);
       if (notify) vscode.postMessage({ type: "setMode", mode });
     }
@@ -70,6 +77,7 @@
         state = root.MeanwhileVibe.initialState(data.payload?.state);
         initialized = true;
         ui.update(state);
+        appearance.update(state.theme);
         setMode(data.payload?.mode);
       } else if (data.type === "mode") {
         setMode(data.mode);

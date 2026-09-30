@@ -12,13 +12,14 @@ const model = createRequire(import.meta.url)(join(media, "vibe-model.js"));
 const assets = {
   VIEW_MODEL: "view-model.js", VIBE_MODEL: "vibe-model.js", VIBE_UI: "vibe-ui.js",
   VIBE_BRIDGE: "vibe-bridge.js", VIBE_CSS: "vibe.css",
+  PANEL_CSS: "panel.css", PANEL_THEME: "panel-theme.js",
 };
-const allowedFiles = new Set(Object.values(assets));
+const allowedFiles = new Set([...Object.values(assets), ...model.activities.map((activity) => activity.logo), "fonts/Manrope.ttf"]);
 const frameOrigins = [...new Set(model.activities.filter((a) => a.embedUrl).map((a) => new URL(a.embedUrl).origin))];
-const csp = `default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' https://i.ytimg.com data:; frame-src ${frameOrigins.join(" ") || "'none'"};`;
+const csp = `default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' https://i.ytimg.com data:; frame-src ${frameOrigins.join(" ") || "'none'"};`;
 const shell = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Meanwhile · Vibe preview</title><style>
 *{box-sizing:border-box}body{margin:0;background:#10120f;color:#e7e8e2;font:13px system-ui}header{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 18px;border-bottom:1px solid #35392e}header strong{margin-right:auto}button{font:inherit;background:#23271f;color:inherit;border:1px solid #48513a;border-radius:6px;padding:7px 12px;cursor:pointer}#preview{display:block;width:min(460px,100%);height:calc(100dvh - 95px);min-height:450px;margin:14px auto;border:1px solid #35392e;border-radius:10px;background:#171916}#note{color:#b5bbae;font-size:11px}
-</style></head><body><header><strong>Meanwhile / browser preview</strong><span id="note">Agent status is simulated. Activity sites are real.</span><button id="ready">Simulate agent finished</button><button id="size">Narrow panel</button><button id="theme">Light theme</button></header><script src="/vibe-model.js"></script><script src="/preview-host.js"></script></body></html>`;
+</style></head><body><header><strong>Meanwhile / browser preview</strong><span id="note">Agent status is simulated. Activity sites are real.</span><button id="ready">Simulate agent finished</button><button id="size">Narrow panel</button><button id="theme">Simulate light editor</button></header><script src="/vibe-model.js"></script><script src="/preview-host.js"></script></body></html>`;
 const host = `(() => {
   const model = window.MeanwhileVibe;
   const key = 'meanwhile.vibe.browser.preview.v1';
@@ -59,7 +60,7 @@ const host = `(() => {
   };
   document.getElementById('ready').onclick = event => { finished = !finished; event.target.textContent = finished ? 'Simulate agent running' : 'Simulate agent finished'; push(); };
   document.getElementById('size').onclick = event => { const narrow = frame.dataset.narrow !== 'true'; frame.dataset.narrow = narrow; frame.style.width = narrow ? 'min(320px,100%)' : 'min(460px,100%)'; event.target.textContent = narrow ? 'Wider panel' : 'Narrow panel'; };
-  document.getElementById('theme').onclick = event => { light = !light; theme(); event.target.textContent = light ? 'Dark theme' : 'Light theme'; };
+  document.getElementById('theme').onclick = event => { light = !light; theme(); event.target.textContent = light ? 'Simulate dark editor' : 'Simulate light editor'; };
   frame.src = '/panel.html'; document.body.append(frame);
 })();`;
 const shim = "window.acquireVsCodeApi = () => ({postMessage: message => window.parent.previewHost.dispatch(message)});";
@@ -73,11 +74,13 @@ const server = createServer((req, res) => {
     type = "text/html";
     body = readFileSync(join(media, "panel.html"), "utf8")
       .replace(/\{\{CSP\}\}/g, csp)
-      .replace(/\{\{(VIEW_MODEL|VIBE_MODEL|VIBE_UI|VIBE_BRIDGE|VIBE_CSS)\}\}/g, (_, name) => "/" + assets[name])
+      .replace(/\{\{(VIEW_MODEL|VIBE_MODEL|VIBE_UI|VIBE_BRIDGE|VIBE_CSS|PANEL_CSS|PANEL_THEME)\}\}/g, (_, name) => "/" + assets[name])
       .replace("</head>", '<script src="/preview-shim.js"></script></head>');
   } else if (allowedFiles.has(pathname.slice(1))) {
-    body = readFileSync(join(media, pathname.slice(1)), "utf8");
+    body = readFileSync(join(media, pathname.slice(1)));
     if (pathname.endsWith(".css")) type = "text/css";
+    if (pathname.endsWith(".png")) type = "image/png";
+    if (pathname.endsWith(".ttf")) type = "font/ttf";
   } else { res.writeHead(404); res.end("Not found"); return; }
   res.writeHead(200, { "Content-Type": type + "; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" });
   res.end(body);

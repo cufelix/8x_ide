@@ -108,11 +108,12 @@ test("Vibe opens with no coding session and restores browser preferences after e
   const first = await host(project, values);
   await first.commands.get("meanwhile.vibe")();
   await first.receive({ type: "ready" });
-  assert.ok(!first.panel.webview.html.includes("{{VIBE_"), "all Vibe assets have webview URIs");
+  assert.ok(!first.panel.webview.html.includes("{{"), "all panel assets have webview URIs");
   assert.ok(first.panel.webview.html.includes("https://lichess.org"), "official activity embed is permitted by CSP");
+  assert.ok(first.panel.webview.html.includes("font-src https://webview.test"), "bundled font is permitted without remote font hosts");
   assert.equal(first.messages.find((m) => m.type === "vibeInit").payload.mode, "vibe");
 
-  let state = vibe.choose(vibe.initialState(), "duolingo");
+  let state = vibe.choose(vibe.initialState({ version: 2, theme: "light" }), "duolingo");
   state = vibe.togglePin(state, "duolingo");
   await first.receive({ type: "vibeSave", state, requestId: 1 });
   assert.equal(first.messages.at(-1).ok, true);
@@ -125,6 +126,7 @@ test("Vibe opens with no coding session and restores browser preferences after e
   assert.equal(restored.mode, "vibe");
   assert.deepEqual(restored.state, state);
   assert.equal(restored.state.pinnedIds.includes("duolingo"), true);
+  assert.equal(restored.state.theme, "light");
 });
 
 test("switching to Vibe cancels pending auto-close and keeps a stopped run available", async (t) => {

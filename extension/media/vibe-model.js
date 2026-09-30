@@ -19,31 +19,31 @@
   // that endpoint returned 200 with no framing restriction on the same date.
   const activities = [
     {
-      id: "duolingo", title: "Duolingo", mark: "Du",
-      description: "Continue learning a language on Duolingo.",
+      id: "duolingo", title: "Duolingo", logo: "logos/duolingo.png",
+      description: "Pick up your next language lesson.",
       url: "https://www.duolingo.com/learn", embedUrl: null, launch: "browser",
       interests: ["languages"], reason: "Continue on the real Duolingo site in your browser.",
     },
     {
-      id: "brilliant", title: "Brilliant", mark: "Br",
-      description: "Explore interactive math and coding lessons.",
+      id: "brilliant", title: "Brilliant", logo: "logos/brilliant.png",
+      description: "Think through a math or coding challenge.",
       url: "https://brilliant.org/", embedUrl: null, launch: "browser",
       interests: ["puzzles", "coding"], reason: "Continue on the real Brilliant site in your browser.",
     },
     {
-      id: "exercism", title: "Exercism", mark: "Ex",
-      description: "Practice a programming language with real exercises.",
+      id: "exercism", title: "Exercism", logo: "logos/exercism.png",
+      description: "Try a small programming exercise.",
       url: "https://exercism.org/tracks", embedUrl: null, launch: "browser",
       interests: ["coding"], reason: "Continue on the real Exercism site in your browser.",
     },
     {
-      id: "monkeytype", title: "Monkeytype", mark: "mt",
-      description: "Take a typing test and work on accuracy and speed.",
+      id: "monkeytype", title: "Monkeytype", logo: "logos/monkeytype.png",
+      description: "Find your rhythm with a quick typing test.",
       url: "https://monkeytype.com/", embedUrl: null, launch: "browser",
       interests: ["typing"], reason: "Continue on the real Monkeytype site in your browser.",
     },
     {
-      id: "lichess", title: "Lichess", mark: "♞",
+      id: "lichess", title: "Lichess", logo: "logos/lichess.png",
       description: "Explore moves on a real chess analysis board.",
       url: "https://lichess.org/analysis",
       embedUrl: "https://lichess.org/embed/analysis?theme=brown&bg=dark", launch: "embed",
@@ -78,6 +78,7 @@
     const source = isRecord(raw) && raw.version === 2 ? raw : {};
     return {
       version: 2,
+      theme: source.theme === "light" || source.theme === "dark" ? source.theme : "system",
       interestIds: knownIds(source.interestIds, knownInterest),
       pinnedIds: knownIds(source.pinnedIds, knownActivity),
       recentIds: knownIds(source.recentIds, knownActivity).slice(0, activities.length),
