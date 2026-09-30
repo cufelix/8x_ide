@@ -4,10 +4,14 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { conversationIdFrom, parseStdin } from "./hook-io.mjs";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const { onCodingSessionStart } = await import(
-  pathToFileURL(join(root, "runtime/pipeline.mjs")).href
-);
 
-const input = await parseStdin();
-onCodingSessionStart({ conversationId: conversationIdFrom(input) });
+try {
+  const { onCodingSessionStart } = await import(
+    pathToFileURL(join(root, "runtime/pipeline.mjs")).href
+  );
+  const input = await parseStdin();
+  onCodingSessionStart({ conversationId: conversationIdFrom(input) });
+} catch (err) {
+  console.error("[meanwhile] sessionStart:", err?.message || err);
+}
 process.exit(0);

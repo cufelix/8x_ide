@@ -7,11 +7,22 @@ const GENERATORS = {
 };
 
 export function generatorId() {
-  const raw = (process.env.MEANWHILE_GENERATOR || "stub").trim().toLowerCase();
-  return raw in GENERATORS ? raw : "stub";
+  const raw = (process.env.MEANWHILE_GENERATOR || "").trim().toLowerCase();
+  if (raw in GENERATORS) {
+    return raw;
+  }
+  // Auto: OpenRouter when key present.
+  if ((process.env.OPENROUTER_API_KEY || "").trim()) {
+    return "llm";
+  }
+  return "stub";
 }
 
 export async function generateLesson(input) {
   const id = generatorId();
-  return GENERATORS[id](input);
+  try {
+    return await GENERATORS[id](input);
+  } catch {
+    return stubGenerate(input);
+  }
 }

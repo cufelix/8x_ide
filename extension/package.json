@@ -1,8 +1,8 @@
 {
   "name": "meanwhile",
   "displayName": "Meanwhile",
-  "description": "Half-screen waiting room while a coding agent runs.",
-  "version": "0.1.2",
+  "description": "Half-screen waiting room while a coding agent runs — stack reaction, YouTube, micro-lessons.",
+  "version": "0.2.3",
   "publisher": "meanwhile",
   "engines": {
     "vscode": "^1.85.0"
@@ -20,6 +20,10 @@
         "command": "meanwhile.open",
         "title": "Meanwhile: Open",
         "icon": "$(window)"
+      },
+      {
+        "command": "meanwhile.demo",
+        "title": "Meanwhile: Start Demo Session"
       }
     ],
     "keybindings": [
@@ -27,6 +31,11 @@
         "command": "meanwhile.open",
         "key": "ctrl+alt+m",
         "mac": "cmd+alt+m"
+      },
+      {
+        "command": "meanwhile.demo",
+        "key": "ctrl+alt+shift+m",
+        "mac": "cmd+alt+shift+m"
       }
     ]
   }
