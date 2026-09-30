@@ -1,7 +1,7 @@
 {
   "name": "meanwhile",
   "displayName": "Meanwhile",
-  "description": "The half-tab you sit with while a Cursor agent runs: the wait, one clip, one question.",
+  "description": "Make agent wait time useful: follow the work or open your favorite learning and practice sites in Vibe.",
   "version": "0.4.0",
   "publisher": "meanwhile",
   "engines": {
@@ -24,6 +24,10 @@
       {
         "command": "meanwhile.demo",
         "title": "Meanwhile: Start Demo Session"
+      },
+      {
+        "command": "meanwhile.vibe",
+        "title": "Meanwhile: Open Vibe"
       }
     ],
     "keybindings": [

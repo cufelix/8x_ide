@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "demo": "node scripts/demo-session.mjs"
+    "demo": "node scripts/demo-session.mjs",
+    "preview:vibe": "node scripts/preview-vibe.mjs"
   },
   "engines": {
     "node": ">=20"
